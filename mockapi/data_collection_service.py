@@ -131,11 +131,23 @@ RESPOND WITH JSON:
 
 REMEMBER: Only extract what user EXPLICITLY said. No placeholders! Always ask for confirmation before generating!"""
     
-    def analyze_conversation_completeness(self, suggestions: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_conversation_completeness(self, suggestions: Dict[str, Any], has_generated_content: bool = False) -> Dict[str, Any]:
         """
         Strict validation ensuring no placeholder values pass through.
         Includes confirmation logic to prevent auto-generation.
+        Respects generation state to prevent regeneration loops.
         """
+        # If content already exists, don't regenerate automatically
+        if has_generated_content:
+            return {
+                "ready_to_generate": False,  # Never regenerate automatically
+                "awaiting_confirmation": False,
+                "user_confirmed_generation": False,
+                "missing_requirements": [],
+                "conversation_stage": "post_generation_feedback",
+                "completion_percentage": 100
+            }
+        
         missing_mandatory = []
         
         for field in self.mandatory_fields:
