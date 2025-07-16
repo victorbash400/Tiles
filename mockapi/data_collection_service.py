@@ -45,6 +45,8 @@ class DataCollectionService:
 
 CONTEXT: You have already generated event recommendations (images, music, venues, food) for the user's event.
 
+CRITICAL: You MUST extract the event details from the conversation history for PDF generation and refinements to work properly.
+
 POST-GENERATION BEHAVIOR:
 1. Acknowledge the generated content and ask for feedback
 2. Offer refinements: "How do you like the recommendations? Would you like me to adjust anything?"
@@ -71,7 +73,13 @@ RESPOND WITH JSON:
         "has_generated": true,
         "action_requested": null or "specific action if user requests",
         "refinement_type": null or "music/venues/food/style/pdf",
-        "refinement_details": null or "specific changes requested"
+        "refinement_details": null or "specific changes requested",
+        "event_type": "extract from conversation history",
+        "location": "extract from conversation history",
+        "guest_count": "extract from conversation history",
+        "budget": "extract from conversation history",
+        "meal_type": "extract from conversation history",
+        "dietary_restrictions": "extract from conversation history"
     },
     "ready_to_generate": false,
     "ready_to_refine": true,
