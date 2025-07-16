@@ -116,7 +116,7 @@ MANDATORY FIELDS TO COLLECT:
 2. location - SPECIFIC city + country (not "home" or "outdoor")
 3. guest_count - EXACT number (not "around 50")
 4. budget - Amount with currency OR detailed style description
-5. meal_type - ONE type: breakfast/lunch/dinner/cocktails/snacks
+5. meal_type - ONE type: breakfast/lunch/dinner/cocktails/snacks/buffet/brunch
 6. dietary_restrictions - Specific restrictions OR "none"
 
 RESPOND WITH JSON:

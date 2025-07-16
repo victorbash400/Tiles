@@ -132,8 +132,8 @@ class AIService:
                     # Add analysis data to result
                     result.update(analysis)
                     
-                    # Override with session state if available
-                    if awaiting_confirmation:
+                    # Override with session state if available or if analysis says to await confirmation
+                    if awaiting_confirmation or result.get("awaiting_confirmation", False):
                         result["awaiting_confirmation"] = True
                         result["ready_to_generate"] = False
                     
