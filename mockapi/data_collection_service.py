@@ -139,7 +139,7 @@ RESPOND WITH JSON:
 
 REMEMBER: Only extract what user EXPLICITLY said. No placeholders! Always ask for confirmation before generating!"""
     
-    def analyze_conversation_completeness(self, suggestions: Dict[str, Any], has_generated_content: bool = False) -> Dict[str, Any]:
+    def analyze_conversation_completeness(self, suggestions: Dict[str, Any], has_generated_content: bool = False, session_context: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Strict validation ensuring no placeholder values pass through.
         Includes confirmation logic to prevent auto-generation.
@@ -233,8 +233,9 @@ REMEMBER: Only extract what user EXPLICITLY said. No placeholders! Always ask fo
                 stage = "collecting_details"
             else:
                 # All fields complete - check for confirmation
-                awaiting_confirmation = suggestions.get("awaiting_confirmation", False)
-                user_confirmed_generation = suggestions.get("user_confirmed_generation", False)
+                session_ctx = session_context or {}
+                awaiting_confirmation = session_ctx.get("awaiting_confirmation", False)
+                user_confirmed_generation = session_ctx.get("user_confirmed_generation", False)
                 
                 if not awaiting_confirmation and not user_confirmed_generation:
                     stage = "awaiting_confirmation"

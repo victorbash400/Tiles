@@ -76,7 +76,8 @@ class EventService:
             "plan_status": plan_session.plan_status,
             "plan_progress": get_plan_progress(db, session.id)["progress"],
             "music_data": ai_response.get("music_data", []),
-            "venue_data": ai_response.get("venue_data", [])
+            "venue_data": ai_response.get("venue_data", []),
+            "pdf_requested": ai_response.get("pdf_requested", False)
         }
         
         return {

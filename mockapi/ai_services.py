@@ -127,7 +127,7 @@ class AIService:
                     user_confirmed_generation = session_context.get("user_confirmed_generation", False)
                     
                     # Analyze conversation completeness
-                    analysis = data_collection_service.analyze_conversation_completeness(suggestions, has_generated_content)
+                    analysis = data_collection_service.analyze_conversation_completeness(suggestions, has_generated_content, session_context)
                     
                     # Add analysis data to result
                     result.update(analysis)
