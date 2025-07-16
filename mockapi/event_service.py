@@ -56,6 +56,7 @@ class EventService:
                 "images": generated_content["images"],
                 "music": generated_content["music"],
                 "venues": generated_content["venues"],
+                "food": generated_content["food"],
                 "generation_prompt": ai_response.get("image_generation_prompt", ""),
                 "suggestions": ai_response.get("suggestions", {})
             }
@@ -245,23 +246,25 @@ class EventService:
                     )
                     generated_music = recommendations.get("music", [])
                     generated_venues = recommendations.get("venues", [])
-                    print(f"✅ Generated {len(generated_music)} music tracks and {len(generated_venues)} venues")
+                    generated_food = recommendations.get("food", [])
+                    print(f"✅ Generated {len(generated_music)} music tracks, {len(generated_venues)} venues, and {len(generated_food)} food items")
             
-            total_count = len(generated_images) + len(generated_music) + len(generated_venues)
+            total_count = len(generated_images) + len(generated_music) + len(generated_venues) + len(generated_food)
             return {
                 "images": generated_images,
                 "music": generated_music,
                 "venues": generated_venues,
+                "food": generated_food,
                 "has_content": total_count > 0,
                 "total_count": total_count
             }
             
         except asyncio.TimeoutError:
             print("Content generation timed out")
-            return {"images": [], "music": [], "venues": [], "has_content": False, "total_count": 0}
+            return {"images": [], "music": [], "venues": [], "food": [], "has_content": False, "total_count": 0}
         except Exception as e:
             print(f"Error generating content: {str(e)}")
-            return {"images": [], "music": [], "venues": [], "has_content": False, "total_count": 0}
+            return {"images": [], "music": [], "venues": [], "food": [], "has_content": False, "total_count": 0}
     
     def get_ai_memory(self, user_session: str, db: Session) -> Dict:
         """Get AI memory/personalization data for isolated chats"""

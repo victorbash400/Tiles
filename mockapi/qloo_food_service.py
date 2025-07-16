@@ -106,7 +106,7 @@ class QlooFoodService:
                                 
                                 food_item = {
                                     "id": f"qloo_food_{result.get('entity_id', '')}",
-                                    "type": "food_recommendation",
+                                    "type": "food",
                                     "platform": "qloo",
                                     "name": result.get("name", ""),
                                     "cuisine_type": self._extract_cuisine_type(result.get("tags", [])),
@@ -442,10 +442,14 @@ Select the {count} MOST appropriate food recommendations considering:
 4. Practical for guest count and serving style
 5. Authentic and high-quality options
 
+IMPORTANT: You must return the "qloo_id" field values, NOT the name field values.
+
 Return ONLY a JSON object with this exact structure:
 {{
   "recommendations": ["qloo_id_1", "qloo_id_2", "qloo_id_3"]
-}}"""
+}}
+
+Example: If you select a food item with qloo_id "ABC123", include "ABC123" in the recommendations array."""
 
         try:
             async with httpx.AsyncClient() as client:
@@ -504,6 +508,10 @@ Return ONLY a JSON object with this exact structure:
                             curated.append(food)
                     
                     print(f"🤖 AI curated {len(curated_ids)} food items: {curated_ids}")
+                    print(f"🔍 Looking for qloo_ids in food items...")
+                    for food in food_items:
+                        print(f"   - {food.get('name', 'No name')}: {food.get('qloo_id', 'No qloo_id')}")
+                    print(f"🎯 Final curated food recommendations: {len(curated)}")
                     return curated
                     
                 else:
@@ -605,7 +613,7 @@ Return ONLY a JSON object with this exact structure:
         for i, food in enumerate(fallback_foods[:count]):
             formatted_food = {
                 "id": f"fallback_food_{i}",
-                "type": "food_recommendation",
+                "type": "food",
                 "platform": "fallback",
                 "name": food["name"],
                 "cuisine_type": food["cuisine_type"],
