@@ -120,12 +120,22 @@ class ChatService:
         return conversation_history
     
     def update_session_context(self, session: ChatSession, ai_response: Dict, db: Session):
-        """Update session context with event information"""
+        """Update session context with event information and confirmation state"""
+        event_context = session.event_context or {}
+        
+        # Update event type and title
         if ai_response.get("suggestions", {}).get("event_type"):
-            event_context = session.event_context or {}
             event_context["event_type"] = ai_response["suggestions"]["event_type"]
             event_context["title"] = f"{ai_response['suggestions']['event_type']} Planning"
-            session.event_context = event_context
-            db.commit()
+        
+        # Track confirmation state
+        session_context = event_context.get("session_context", {})
+        session_context["awaiting_confirmation"] = ai_response.get("awaiting_confirmation", False)
+        session_context["user_confirmed_generation"] = ai_response.get("user_confirmed_generation", False)
+        session_context["conversation_stage"] = ai_response.get("conversation_stage", "greeting")
+        
+        event_context["session_context"] = session_context
+        session.event_context = event_context
+        db.commit()
 
 chat_service = ChatService()

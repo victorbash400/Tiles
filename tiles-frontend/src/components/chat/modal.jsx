@@ -170,9 +170,25 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
     setMessages(prev => [...prev, userMessage]);
     setIsNewChat(false);
 
+    // Add AI generation animation
+    const loadingMessage = {
+      id: `loading-${Date.now()}`,
+      content: '',
+      role: 'assistant',
+      timestamp: new Date().toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false}),
+      message_type: 'loading',
+      isGenerating: true
+    };
+
+    setMessages(prev => [...prev, loadingMessage]);
+
     try {
       const aiResponse = await saveMessage(chatId, text);
       console.log('AI Response received:', aiResponse);
+      
+      // Remove loading message
+      setMessages(prev => prev.filter(msg => msg.id !== loadingMessage.id));
+      
       if (aiResponse) {
         setMessages(prev => [...prev, aiResponse]);
         loadAIMemory();
@@ -187,7 +203,7 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
       }
     } catch (err) {
       console.error('Message error:', err);
-      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id || msg.id !== loadingMessage.id));
     }
   };
 
@@ -409,6 +425,7 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
                             musicData={msg.music_data}
                             venueData={msg.venue_data}
                             aiSuggestions={msg.ai_suggestions}
+                            isGenerating={msg.isGenerating}
                           />
                         ))}
                         <div ref={messagesEndRef} />

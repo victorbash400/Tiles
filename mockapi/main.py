@@ -24,6 +24,7 @@ from models import (
 from chat_service import chat_service
 from event_service import create_event_service
 from gallery_service import create_gallery_service
+from pdf_service import pdf_service
 
 # Load environment variables
 load_dotenv()
@@ -239,6 +240,59 @@ async def search_by_style(style: str, count: int = 12):
     
     result = await gallery_service.search_by_style(style, count)
     return GalleryResponse(**result)
+
+@app.post("/api/generate-pdf/{chat_id}")
+async def generate_event_plan_pdf(
+    chat_id: str,
+    db: Session = Depends(get_db)
+):
+    """Generate comprehensive event plan PDF"""
+    try:
+        # Get chat session and plan data
+        chat_session = db.query(ChatSession).filter(ChatSession.session_id == chat_id).first()
+        if not chat_session:
+            raise HTTPException(status_code=404, detail="Chat session not found")
+        
+        # Get event data from plan sessions
+        from database import PlanSession
+        plan_session = db.query(PlanSession).filter(PlanSession.user_session == chat_session.user_session).first()
+        
+        if not plan_session or not plan_session.generated_content:
+            raise HTTPException(status_code=400, detail="No generated content found for this event")
+        
+        # Extract event data
+        event_data = {
+            'event_type': plan_session.event_context.get('event_type', 'Event'),
+            'location': plan_session.event_context.get('location', 'Not specified'),
+            'guest_count': plan_session.event_context.get('guest_count', 'Not specified'),
+            'budget': plan_session.event_context.get('budget', 'Not specified'),
+            'meal_type': plan_session.event_context.get('meal_type', 'Not specified'),
+            'dietary_restrictions': plan_session.event_context.get('dietary_restrictions', 'None')
+        }
+        
+        # Extract user selections (generated content)
+        user_selections = {
+            'music': plan_session.generated_content.get('music', []),
+            'venues': plan_session.generated_content.get('venues', []),
+            'food': plan_session.generated_content.get('food', [])
+        }
+        
+        # Generate PDF
+        pdf_bytes = await pdf_service.generate_event_plan_pdf(event_data, user_selections)
+        
+        # Return PDF as response
+        from fastapi.responses import Response
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=event_plan_{chat_id}.pdf"
+            }
+        )
+        
+    except Exception as e:
+        print(f"Error generating PDF: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating PDF: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

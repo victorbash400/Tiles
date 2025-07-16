@@ -37,7 +37,9 @@ class EventService:
         # Build plan context
         plan_context = {
             "plan_status": plan_session.plan_status,
-            "message_count": len(session.messages)
+            "message_count": len(session.messages),
+            "generated_content": plan_session.generated_content,
+            "session_context": session.event_context.get("session_context", {}) if session.event_context else {}
         }
         
         # Generate AI response
