@@ -15,7 +15,8 @@ except ImportError as e:
     def get_db(): return None
 
 # Import services and models
-from ai_services import AIService, UnsplashService
+from ai_services import AIService
+from unsplash_service import UnsplashService
 from models import (
     MessageCreate, MessageResponse, ChatSessionResponse, 
     AIMemoryResponse, GalleryResponse, ServiceStatusResponse

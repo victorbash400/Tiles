@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from database import PlanSession
-from ai_services import UnsplashService
+from unsplash_service import UnsplashService
 
 class GalleryService:
     """Handles gallery content and image operations"""
@@ -20,6 +20,7 @@ class GalleryService:
         ai_generated_images = []
         ai_generated_music = []
         ai_generated_venues = []
+        ai_generated_food = []
         
         for plan in recent_plans:
             if plan.generated_content:
@@ -32,12 +33,15 @@ class GalleryService:
                 # Add venues
                 if plan.generated_content.get("venues"):
                     ai_generated_venues.extend(plan.generated_content["venues"])
+                # Add food
+                if plan.generated_content.get("food"):
+                    ai_generated_food.extend(plan.generated_content["food"])
         
-        # If we have AI-generated content, combine images, music, and venues
-        if ai_generated_images or ai_generated_music or ai_generated_venues:
+        # If we have AI-generated content, combine images, music, venues, and food
+        if ai_generated_images or ai_generated_music or ai_generated_venues or ai_generated_food:
             # Mix content types for comprehensive gallery experience
-            all_content = ai_generated_images[:8] + ai_generated_music[:4] + ai_generated_venues[:4]
-            print(f"📱 Returning {len(ai_generated_images)} images + {len(ai_generated_music)} music + {len(ai_generated_venues)} venues to gallery")
+            all_content = ai_generated_images[:8] + ai_generated_music[:4] + ai_generated_venues[:4] + ai_generated_food[:4]
+            print(f"📱 Returning {len(ai_generated_images)} images + {len(ai_generated_music)} music + {len(ai_generated_venues)} venues + {len(ai_generated_food)} food to gallery")
             return {"images": all_content}
         
         # Fallback to Unsplash images for startup gallery

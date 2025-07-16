@@ -8,8 +8,7 @@ export default function Welcome({ onBegin }) {
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 300);
-    
-    // Inject CSS to ensure Pacifico font is applied
+
     if (typeof document !== 'undefined') {
       const style = document.createElement('style');
       style.textContent = `
@@ -23,7 +22,7 @@ export default function Welcome({ onBegin }) {
         document.head.appendChild(style);
       }
     }
-    
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -34,63 +33,71 @@ export default function Welcome({ onBegin }) {
       transition: {
         duration: 1.2,
         ease: [0.25, 0.46, 0.45, 0.94],
-        staggerChildren: 0.15
-      }
-    }
+        staggerChildren: 0.2,
+        delayChildren: 0.2,
+      },
+    },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 25 },
+    hidden: { opacity: 0, y: 32 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.8,
-        ease: [0.25, 0.46, 0.45, 0.94]
-      }
-    }
+        duration: 0.9,
+        ease: [0.25, 0.46, 0.45, 0.94],
+      },
+    },
   };
 
   return (
-    <div className="min-h-screen bg-[#EFDCCB] flex flex-col items-center justify-center px-4 relative overflow-hidden">
-      {/* Background Image */}
+    <div className="min-h-screen bg-[#EFDCCB] flex flex-col items-center justify-center px-6 md:px-10 relative overflow-hidden">
+      {/* Background */}
       <div className="absolute inset-0 z-0">
         <img
-          src="/background.jpg"
+          src="/black.jpg"
           alt="Elegant terrace backdrop"
-          className="w-full h-full object-cover opacity-95"
+          className="w-full h-full object-cover opacity-90"
         />
       </div>
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-stone-900/40 via-stone-800/30 to-stone-700/50 z-10" />
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/60 z-10" />
 
-      {/* Glass elements */}
+      {/* Glass Decorations */}
       <div className="absolute top-10 left-10 w-40 h-40 rounded-3xl backdrop-blur-md bg-white/10 border border-white/20 z-20 shadow-inner shadow-white/10" />
       <div className="absolute bottom-12 right-12 w-56 h-56 rounded-[4rem] backdrop-blur-lg bg-white/15 border border-white/25 z-20 shadow-inner shadow-white/10" />
       <div className="absolute top-[35%] right-[25%] w-32 h-32 rounded-full backdrop-blur-sm bg-white/10 border border-white/15 z-20 shadow-inner shadow-white/10" />
 
-      {/* Main content */}
+      {/* Main Content */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
-        animate={isVisible ? "visible" : "hidden"}
-        className="relative z-30 text-center max-w-2xl mx-auto px-6"
+        animate={isVisible ? 'visible' : 'hidden'}
+        className="relative z-30 text-center max-w-2xl w-full"
       >
         <motion.h1
           variants={itemVariants}
-          className="text-4xl md:text-5xl font-semibold text-white drop-shadow-xl"
+          className="text-4xl md:text-5xl font-semibold text-white drop-shadow-xl leading-tight md:leading-snug"
           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif' }}
         >
-          Welcome to <br /> <span className="font-pacifico text-amber-200 welcome-tiles-text" style={{ fontFamily: 'Pacifico, cursive !important', fontWeight: 'normal !important' }}>Tiles</span>
+          Welcome to
+          <br />
+          <span
+            className="font-pacifico text-amber-200 welcome-tiles-text"
+            style={{ fontFamily: 'Pacifico, cursive', fontWeight: 'normal' }}
+          >
+            Tiles
+          </span>
         </motion.h1>
 
         <motion.p
           variants={itemVariants}
-          className="text-lg md:text-xl mt-8 text-white/90 font-normal tracking-wide"
+          className="text-lg md:text-xl mt-6 md:mt-8 text-white/90 font-normal tracking-wide max-w-xl mx-auto"
           style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif' }}
         >
-           a warm, playful canvas for designing life’s little (and big) moments.
+          a warm, playful canvas for designing life’s little (and big) moments.
         </motion.p>
 
         <motion.button

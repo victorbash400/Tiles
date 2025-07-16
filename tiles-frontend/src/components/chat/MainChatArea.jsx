@@ -81,16 +81,18 @@ export default function MainChatArea() {
           {images.length > 0 && (
             <div className="absolute inset-0 opacity-4">
               {images.slice(0, 3).map((img, index) => (
-                <div
-                  key={index}
-                  className="absolute w-full h-full bg-cover bg-center"
-                  style={{
-                    backgroundImage: `url(${img.urls.regular})`,
-                    filter: 'blur(50px) saturate(0.2) brightness(1.4) sepia(0.1)',
-                    transform: `scale(1.1) rotate(${index * 15}deg)`,
-                    opacity: 0.15 - index * 0.05,
-                  }}
-                />
+                img.urls && img.urls.regular ? (
+                  <div
+                    key={index}
+                    className="absolute w-full h-full bg-cover bg-center"
+                    style={{
+                      backgroundImage: `url(${img.urls.regular})`,
+                      filter: 'blur(50px) saturate(0.2) brightness(1.4) sepia(0.1)',
+                      transform: `scale(1.1) rotate(${index * 15}deg)`,
+                      opacity: 0.15 - index * 0.05,
+                    }}
+                  />
+                ) : null
               ))}
             </div>
           )}
@@ -122,7 +124,7 @@ export default function MainChatArea() {
               <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-4 gap-6">
                 {images.map((img, index) => (
                   <motion.div 
-                    key={img.id} 
+                    key={img.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: index * 0.05 }}
@@ -130,20 +132,20 @@ export default function MainChatArea() {
                   >
                     <div className="relative rounded-2xl p-2 shadow-lg hover:shadow-xl transition-all duration-500 overflow-hidden group glass-card">
                       {/* Glass background with color refraction */}
-                      <div 
-                        className="absolute inset-0 rounded-2xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"
-                        style={{
-                          backgroundImage: `url(${img.urls.regular})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                          filter: 'blur(40px) saturate(2) brightness(1.3) contrast(1.2)',
-                          transform: 'scale(1.2)',
-                        }}
-                      />
-                      
+                      {img.urls && img.urls.regular && (
+                        <div 
+                          className="absolute inset-0 rounded-2xl opacity-20 group-hover:opacity-30 transition-opacity duration-500"
+                          style={{
+                            backgroundImage: `url(${img.urls.regular})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            filter: 'blur(40px) saturate(2) brightness(1.3) contrast(1.2)',
+                            transform: 'scale(1.2)',
+                          }}
+                        />
+                      )}
                       {/* Glass layer with backdrop blur */}
                       <div className="absolute inset-0 backdrop-blur-md bg-white/25 border border-white/30 rounded-2xl shadow-inner shadow-white/20" />
-                      
                       {/* Content layer */}
                       <div className="relative z-10">
                         <Card
@@ -154,14 +156,12 @@ export default function MainChatArea() {
                             // Legacy fields
                             youtubeId: img.youtubeId,
                             appleMusicId: img.appleMusicId,
-                            
                             // Enhanced playlist/video fields
                             playlistId: img.playlistId,
                             videoId: img.videoId,
                             type: img.type,
                             platform: img.platform,
                             embeddable: img.embeddable,
-                            
                             // Content metadata
                             title: img.title,
                             artist: img.artist || img.channel,
@@ -170,19 +170,16 @@ export default function MainChatArea() {
                             duration: img.duration,
                             item_count: img.item_count,
                             published_at: img.published_at,
-                            
                             // AI/Qloo metadata
                             confidence: img.confidence,
                             context_match: img.context_match,
                             qloo_ai_curated: img.qloo_ai_curated,
                             qloo_query: img.qloo_query,
                             qloo_data: img.qloo_data,
-                            
                             // Images
                             thumbnail: img.urls?.regular,
                             thumbnail_url: img.thumbnail_url,
                             image_url: img.image_url,
-                            
                             // Additional metadata
                             genre: img.genre,
                             mood: img.mood,
@@ -192,17 +189,22 @@ export default function MainChatArea() {
                             image: img.image,
                             address: img.address,
                             location: img.location,
-                            business_rating: img.business_rating,
+                            business_rating: img.business_rating || img.rating,
                             price_level: img.price_level,
                             phone: img.phone,
                             website: img.website,
                             is_open: img.is_open,
                             good_for: img.good_for,
-                            features: img.features
+                            features: img.features,
+                            type: img.type || 'venue',
+                            venue_type: img.venue_type,
+                            tags: img.tags || [],
+                            ai_reason: img.ai_reason,
+                            platform: img.platform
                           } : img}
                         />
                         <div className="pt-3 px-2">
-                          <h3 className="text-sm font-medium text-stone-900 truncate drop-shadow-sm">{img.user.name}</h3>
+                          <h3 className="text-sm font-medium text-stone-900 truncate drop-shadow-sm">{img.user?.name || ''}</h3>
                           {img.alt_description && (
                             <p className="text-xs text-stone-700 mt-1 line-clamp-2 leading-relaxed opacity-90 drop-shadow-sm">
                               {img.alt_description}
@@ -210,7 +212,6 @@ export default function MainChatArea() {
                           )}
                         </div>
                       </div>
-                      
                       {/* Edge highlight for realism */}
                       <div className="absolute inset-0 rounded-2xl border border-white/40 pointer-events-none" />
                     </div>

@@ -9,6 +9,7 @@ from database import (
 )
 from ai_services import AIService
 from prompt_service import prompt_service
+from data_collection_service import data_collection_service
 
 class EventService:
     """Handles event planning logic and AI coordination"""
@@ -83,7 +84,7 @@ class EventService:
     async def _generate_ai_response(self, message_content: str, conversation_history: List[Dict], plan_context: Dict) -> Dict:
         """Generate AI response with timeout handling"""
         if not self.ai_service:
-            return self._fallback_response(message_content, conversation_history)
+            return await self._fallback_response(message_content, conversation_history)
         
         try:
             return await asyncio.wait_for(
@@ -93,38 +94,27 @@ class EventService:
                     conversation_history,
                     plan_context
                 ),
-                timeout=15.0
+                timeout=60.0
             )
         except asyncio.TimeoutError:
             print("AI response generation timed out")
-            return self._fallback_response(message_content, conversation_history)
+            return {
+                "message": "I'm still thinking about your event. Please provide more details or try again.",
+                "suggestions": {},
+                "ready_to_generate": False,
+                "confidence": 0.0
+            }
         except Exception as e:
             print(f"AI response generation error: {str(e)}")
-            return self._fallback_response(message_content, conversation_history)
+            return {
+                "message": "I encountered an error processing your request. Please try again.",
+                "suggestions": {},
+                "ready_to_generate": False,
+                "confidence": 0.0
+            }
     
-    def _fallback_response(self, message_content: str, conversation_history: List[Dict]) -> Dict:
-        """Generate fallback response when AI service fails"""
-        conversation_text = " ".join([msg.get("content", "") for msg in conversation_history]) + " " + message_content
-        
-        # Infer event type and details from conversation
-        event_type, colors, style = self._analyze_conversation_context(conversation_text)
-        location = self._extract_location_from_conversation(conversation_text)
-        
-        return {
-            "message": f"I'm creating your beautiful {event_type} inspiration! Let me generate some amazing ideas for you.",
-            "suggestions": {
-                "event_type": event_type,
-                "style": style,
-                "colors": colors,
-                "mood": "joyful",
-                "location": location
-            },
-            "ready_to_generate": True,
-            "image_generation_prompt": f"{event_type} {location} {' '.join(colors)} theme",
-            "confidence": 0.8
-        }
     
-    def _analyze_conversation_context(self, conversation_text: str) -> tuple:
+    def _analyze_conversation_context_basic(self, conversation_text: str) -> tuple:
         """Analyze conversation to extract event context"""
         conversation_lower = conversation_text.lower()
         
@@ -136,63 +126,74 @@ class EventService:
         else:
             return "party", ["pink", "gold", "white"], "celebration"
     
-    def _extract_location_from_conversation(self, conversation_text: str) -> str:
-        """Extract location with improved patterns"""
-        known_places = [
-            'hawaii', 'california', 'florida', 'new york', 'texas', 'chicago', 
-            'miami', 'los angeles', 'brooklyn', 'manhattan', 'boston', 'seattle',
-            'denver', 'atlanta', 'vegas', 'las vegas', 'san francisco', 'san diego',
-            'philadelphia', 'washington', 'dc', 'maryland', 'virginia', 'nairobi',
-            'kenya', 'mombasa', 'kisumu'
-        ]
-        
-        # Location correction map
-        location_corrections = {
-            'hawwai': 'Hawaii',
-            'hawai': 'Hawaii',
-            'californa': 'California',
-            'flordia': 'Florida',
-            'chigago': 'Chicago'
-        }
-        
-        # Look for specific geographic location patterns
-        specific_patterns = [
-            r'in\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*?)(?:\s+and|\s+with|\s+for|\s*,|\s*$|\s*!|\s*\?)',
-            r'at\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*?)(?:\s+and|\s+with|\s+for|\s*,|\s*$|\s*!|\s*\?)',
-            r'from\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*?)(?:\s+and|\s+with|\s+for|\s*,|\s*$|\s*!|\s*\?)',
-        ]
-        
-        for pattern in specific_patterns:
-            matches = re.findall(pattern, conversation_text, re.IGNORECASE)
-            for match in matches:
-                extracted_location = match.strip()
-                if 2 < len(extracted_location) < 30:
-                    location_lower = extracted_location.lower()
-                    if any(place in location_lower for place in known_places):
-                        return extracted_location.title()
-        
-        # Fallback to direct keyword matching
-        for place in known_places:
-            if place in conversation_text.lower():
-                corrected_location = location_corrections.get(place, place.title())
-                return corrected_location
-        
+    def _extract_location_basic(self, conversation_text: str) -> str:
+        """AI handles location extraction better - using fallback only"""
+        # Simple fallback - AI in data_collection_service does the heavy lifting
         return ""
     
     async def _generate_event_content(self, ai_response: Dict, conversation_history: List[Dict], message_content: str) -> Dict:
         """Generate event content (images, music, venues) if conditions are met"""
         suggestions = ai_response.get("suggestions", {})
-        has_specific_location = suggestions.get("location") and len(suggestions.get("location", "")) > 3
+        
+        # Check ALL mandatory fields from data collection service
+        mandatory_fields = {
+            "event_type": "event type",
+            "location": "location (city + country)",
+            "guest_count": "number of guests", 
+            "budget": "budget or style preference",
+            "meal_type": "meal type",
+            "dietary_restrictions": "dietary restrictions"
+        }
+        
+        missing_fields = []
+        for field, description in mandatory_fields.items():
+            value = suggestions.get(field)
+            is_valid = False
+            
+            if field == "guest_count":
+                # Guest count must be a positive integer - convert string numbers
+                if isinstance(value, str) and value.isdigit():
+                    value = int(value)
+                    suggestions[field] = value  # Update the original value
+                is_valid = isinstance(value, (int, float)) and value > 0
+            elif field == "dietary_restrictions":
+                # Dietary restrictions can be empty array, string "none", or actual restrictions
+                is_valid = (
+                    isinstance(value, list) or 
+                    (isinstance(value, str) and len(value.strip()) >= 2) or
+                    value == "none"
+                )
+            else:
+                # Other fields must be non-empty strings and not "unspecified"
+                is_valid = (value and isinstance(value, str) and len(value.strip()) >= 2 and 
+                           value.strip().lower() != "unspecified")
+            
+            if not is_valid:
+                missing_fields.append(description)
+                print(f"❌ Field '{field}' invalid: {value} (type: {type(value)})")
+            else:
+                print(f"✅ Field '{field}' valid: {value}")
+        
+        # Special validation for location - must be specific
+        location = suggestions.get("location", "")
+        has_specific_location = location and len(location) > 3 and not any(generic in location.lower() for generic in ["venue", "place", "somewhere", "anywhere"])
+        
+        if not has_specific_location:
+            missing_fields.append("specific location (city + country)")
+        
         ai_ready = ai_response.get("ready_to_generate", False)
+        all_fields_complete = len(missing_fields) == 0
         
-        print(f"🔍 Generation check: AI ready={ai_ready}, has_location={has_specific_location}, location='{suggestions.get('location', '')}'")
+        print(f"🔍 Generation check: AI ready={ai_ready}, all_fields_complete={all_fields_complete}")
+        if missing_fields:
+            print(f"⚠️ Missing mandatory fields: {missing_fields}")
         
-        if not (ai_ready and ai_response.get("image_generation_prompt") and has_specific_location):
-            if ai_ready and not has_specific_location:
-                print(f"⚠️ AI wanted to generate but location '{suggestions.get('location', '')}' is insufficient")
-                ai_response["message"] = "I need more specific details! 🎯 Please tell me the exact city and country for your event so I can find the perfect venues and create amazing inspiration for you!"
+        if not (ai_ready and ai_response.get("image_generation_prompt") and all_fields_complete):
+            if ai_ready and not all_fields_complete:
+                print(f"⚠️ AI wanted to generate but missing: {missing_fields}")
+                ai_response["message"] = f"I need a few more details to create the perfect event for you! 🎯 Please tell me: {', '.join(missing_fields[:3])}"
                 ai_response["ready_to_generate"] = False
-            return {"images": [], "music": [], "venues": [], "has_content": False, "total_count": 0}
+            return {"images": [], "music": [], "venues": [], "food": [], "has_content": False, "total_count": 0}
         
         try:
             print(f"🎨 User requested generation: {ai_response['image_generation_prompt']}")
@@ -203,13 +204,19 @@ class EventService:
             generated_venues = []
             
             if self.ai_service:
-                # Extract conversation context for prompt service
-                conversation_context = prompt_service.analyze_conversation_context(conversation_history, message_content)
+                # Use AI-powered conversation analysis for better data extraction
+                conversation_context = await data_collection_service.analyze_conversation_with_ai(conversation_history, message_content)
                 
-                # Determine final location
-                ai_location = suggestions.get("location", "")
-                conversation_location = conversation_context.get("location", "")
-                final_location = conversation_location if conversation_location else ai_location
+                # Use AI-extracted location - it's smarter than regex
+                final_location = suggestions.get("location", "")
+                
+                # Fallback to conversation context if AI didn't extract location
+                if not final_location or final_location == "null":
+                    final_location = conversation_context.get("location", "")
+                
+                # Final fallback
+                if not final_location or final_location == "null":
+                    final_location = "location not specified"
                 
                 print(f"🎯 Final location used: '{final_location}'")
                 

@@ -299,93 +299,146 @@ export default function Card({ image, aspectRatio, type = 'image', data = {} }) 
 
       case 'venue':
         return (
-          <div className="relative overflow-hidden rounded-xl bg-white shadow-lg">
-            {/* Large Venue Image */}
-            <div className="w-full h-48 overflow-hidden">
-              {data.image ? (
-                <img 
-                  src={data.image} 
-                  alt={data.name} 
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-emerald-100 to-teal-200 flex items-center justify-center">
-                  <MapPin className="w-16 h-16 text-emerald-600" />
-                </div>
-              )}
-            </div>
+          <div className="relative overflow-hidden rounded-2xl glass-card">
+            {/* Background diffusion layer */}
+            {data.image && (
+              <div 
+                className="absolute inset-0 rounded-2xl opacity-25 group-hover:opacity-35 transition-opacity duration-500"
+                style={{
+                  backgroundImage: `url(${data.image})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: 'blur(50px) saturate(1.8) brightness(1.4) contrast(1.1)',
+                  transform: 'scale(1.3)',
+                }}
+              />
+            )}
             
-            {/* Compact Info Section */}
-            <div className="p-4 space-y-3">
-              {/* Venue Name & Rating */}
-              <div className="flex items-start justify-between">
-                <h4 className="font-semibold text-sm text-stone-900 leading-tight flex-1 pr-2">
-                  {data.name || 'Venue Name'}
-                </h4>
+            {/* Glass layer with backdrop blur */}
+            <div className="absolute inset-0 backdrop-blur-md bg-white/20 border border-white/25 rounded-2xl shadow-inner shadow-white/15" />
+            
+            {/* Content layer */}
+            <div className="relative z-10">
+              {/* Large Venue Image */}
+              <div className="w-full h-64 overflow-hidden rounded-t-2xl">
+                {data.image ? (
+                  <img 
+                    src={data.image} 
+                    alt={data.name} 
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" 
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-100 to-teal-200 flex items-center justify-center">
+                    <MapPin className="w-20 h-20 text-emerald-600" />
+                  </div>
+                )}
+                
+                {/* Floating rating badge */}
                 {data.business_rating && (
-                  <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
-                    <Star className="w-3 h-3 fill-current" />
-                    <span className="text-xs font-medium">{data.business_rating}</span>
+                  <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm border border-white/40 rounded-full px-3 py-1.5 shadow-lg">
+                    <div className="flex items-center gap-1.5 text-amber-600">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span className="text-sm font-semibold">{data.business_rating}</span>
+                    </div>
                   </div>
                 )}
               </div>
               
-              {/* Location & Price */}
-              <div className="space-y-1">
-                <p className="text-xs text-stone-600 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-stone-400" />
-                  <span className="truncate">{data.address || data.location || 'Location'}</span>
-                </p>
-                
-                <div className="flex items-center justify-between">
-                  {data.price_level && (
-                    <div className="flex items-center gap-1 text-green-600">
-                      <CreditCard className="w-3 h-3" />
-                      <span className="text-xs font-medium">{'$'.repeat(data.price_level)}</span>
-                    </div>
-                  )}
-                  
-                  {data.is_open !== undefined && (
-                    <div className="flex items-center gap-1">
-                      <div className={`w-2 h-2 rounded-full ${data.is_open ? 'bg-green-500' : 'bg-red-500'}`} />
-                      <span className={`text-xs ${data.is_open ? 'text-green-600' : 'text-red-600'}`}>
-                        {data.is_open ? 'Open' : 'Closed'}
-                      </span>
-                    </div>
+              {/* Enhanced Info Section */}
+              <div className="p-5 space-y-4">
+                {/* Venue Name */}
+                <div>
+                  <h4 className="font-bold text-lg text-stone-900 leading-tight mb-1">
+                    {data.name || 'Venue Name'}
+                  </h4>
+                  {data.venue_type && (
+                    <span className="text-sm text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
+                      {data.venue_type.replace('_', ' ')}
+                    </span>
                   )}
                 </div>
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
-                {data.phone && (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.open(`tel:${data.phone}`, '_self');
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-200 transition-colors"
-                  >
-                    <Phone className="w-3 h-3" />
-                    Call
-                  </motion.button>
+                
+                {/* Location & Status */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-stone-600">
+                    <MapPin className="w-4 h-4 text-stone-400" />
+                    <span className="text-sm">{data.address || data.location || 'Location'}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {data.price_level && (
+                        <div className="flex items-center gap-1.5 text-green-600">
+                          <CreditCard className="w-4 h-4" />
+                          <span className="text-sm font-medium">{'$'.repeat(data.price_level)}</span>
+                        </div>
+                      )}
+                      
+                      {data.is_open !== undefined && (
+                        <div className="flex items-center gap-1.5">
+                          <div className={`w-2.5 h-2.5 rounded-full ${data.is_open ? 'bg-green-500' : 'bg-red-500'}`} />
+                          <span className={`text-sm font-medium ${data.is_open ? 'text-green-600' : 'text-red-600'}`}>
+                            {data.is_open ? 'Open' : 'Closed'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Venue Tags */}
+                {data.tags && data.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {data.tags.slice(0, 3).map((tag, idx) => (
+                      <span key={idx} className="text-xs bg-stone-100 text-stone-600 px-2 py-1 rounded-full">
+                        {tag.name || tag}
+                      </span>
+                    ))}
+                  </div>
                 )}
-                {data.website && (
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.open(data.website, '_blank');
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-200 transition-colors"
-                  >
-                    <Globe className="w-3 h-3" />
-                    Visit
-                  </motion.button>
+                
+                {/* AI Reasoning */}
+                {data.ai_reason && (
+                  <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs font-medium text-emerald-700">AI Recommendation</span>
+                    </div>
+                    <p className="text-sm text-emerald-800 leading-relaxed">{data.ai_reason}</p>
+                  </div>
                 )}
+                
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  {data.phone && (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`tel:${data.phone}`, '_self');
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-100 text-emerald-700 rounded-xl text-sm font-medium hover:bg-emerald-200 transition-colors shadow-sm"
+                    >
+                      <Phone className="w-4 h-4" />
+                      Call
+                    </motion.button>
+                  )}
+                  {data.website && (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(data.website, '_blank');
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 text-blue-700 rounded-xl text-sm font-medium hover:bg-blue-200 transition-colors shadow-sm"
+                    >
+                      <Globe className="w-4 h-4" />
+                      Visit
+                    </motion.button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -495,6 +548,101 @@ export default function Card({ image, aspectRatio, type = 'image', data = {} }) 
           </div>
         );
 
+      case 'food':
+        return (
+          <div className="relative overflow-hidden rounded-xl bg-white shadow-lg">
+            {/* Food Image */}
+            <div className="w-full h-40 overflow-hidden">
+              {data.image_url || data.urls?.regular ? (
+                <img 
+                  src={data.image_url || data.urls?.regular} 
+                  alt={data.name || 'Food recommendation'} 
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center">
+                  <ChefHat className="w-12 h-12 text-orange-600" />
+                </div>
+              )}
+            </div>
+            
+            {/* Food Info */}
+            <div className="p-3 space-y-2">
+              {/* Food Name & Cuisine Type */}
+              <div className="flex items-start justify-between">
+                <h4 className="font-semibold text-sm text-stone-900 leading-tight flex-1 pr-2">
+                  {data.name || 'Food Recommendation'}
+                </h4>
+                {data.cuisine_type && (
+                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full whitespace-nowrap">
+                    {data.cuisine_type}
+                  </span>
+                )}
+              </div>
+              
+              {/* Description */}
+              {data.description && (
+                <p className="text-xs text-stone-600 leading-relaxed line-clamp-2">
+                  {data.description}
+                </p>
+              )}
+              
+              {/* Price & Serving Info */}
+              <div className="flex items-center justify-between">
+                {data.price_range && (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <CreditCard className="w-3 h-3" />
+                    <span className="text-xs font-medium">{data.price_range}</span>
+                  </div>
+                )}
+                {data.serving_style && (
+                  <span className="text-xs text-stone-500">{data.serving_style}</span>
+                )}
+              </div>
+              
+              {/* Cultural Context */}
+              {data.cultural_context && (
+                <div className="flex items-center gap-1 text-amber-600">
+                  <Star className="w-3 h-3" />
+                  <span className="text-xs">{data.cultural_context}</span>
+                </div>
+              )}
+              
+              {/* Dietary Info */}
+              {data.dietary_info && data.dietary_info.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {data.dietary_info.slice(0, 3).map((dietary, idx) => (
+                    <span key={idx} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                      {dietary}
+                    </span>
+                  ))}
+                </div>
+              )}
+              
+              {/* AI Confidence */}
+              {data.confidence && (
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="flex-1 bg-orange-200 rounded-full h-1.5">
+                    <div 
+                      className="bg-orange-500 h-1.5 rounded-full transition-all duration-500"
+                      style={{ width: `${data.confidence * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-orange-600">{Math.round(data.confidence * 100)}% match</span>
+                </div>
+              )}
+              
+              {/* Qloo AI indicator */}
+              {data.platform === 'qloo' && (
+                <div className="flex items-center gap-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                  <span>Qloo Cultural Intelligence</span>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
       case 'checklist':
         return (
           <div className="relative overflow-hidden rounded-xl">
@@ -581,6 +729,6 @@ export default function Card({ image, aspectRatio, type = 'image', data = {} }) 
 Card.propTypes = {
   image: PropTypes.string,
   aspectRatio: PropTypes.number,
-  type: PropTypes.oneOf(['image', 'music', 'video', 'venue', 'event', 'restaurant', 'checklist']),
+  type: PropTypes.oneOf(['image', 'music', 'video', 'venue', 'event', 'restaurant', 'checklist', 'food']),
   data: PropTypes.object,
 };
