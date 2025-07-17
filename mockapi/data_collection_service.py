@@ -171,17 +171,16 @@ REMEMBER: Only extract what user EXPLICITLY said. No placeholders! Always ask fo
                     is_valid = int(value) > 0
                     
             elif field == "meal_type":
-                # Must be exactly ONE meal type
-                valid_types = ["breakfast", "lunch", "dinner", "cocktails", "snacks", "brunch", "buffet"]
-                if isinstance(value, str):
-                    value_clean = value.lower().strip()
-                    # Check it's a single valid type (no slashes, commas, or multiple options)
-                    is_valid = (
-                        value_clean in valid_types and 
-                        "/" not in value and 
-                        "," not in value and
-                        " or " not in value.lower()
-                    )
+                # Use AI to validate if it's a legitimate meal type (no hardcoded lists!)
+                if isinstance(value, str) and len(value.strip()) > 0:
+                    value_clean = value.strip()
+                    # Check it's not multiple types (no slashes, commas, or "or")
+                    if "/" not in value and "," not in value and " or " not in value.lower():
+                        # Simple check: if it's a reasonable food/meal word, it's valid
+                        # No AI call needed - just check it's not empty and not multiple options
+                        is_valid = len(value_clean) >= 3
+                    else:
+                        is_valid = False
                     
             elif field == "dietary_restrictions":
                 # Can be "none" or actual restrictions
@@ -232,19 +231,34 @@ REMEMBER: Only extract what user EXPLICITLY said. No placeholders! Always ask fo
             elif len(missing_mandatory) > 0:
                 stage = "collecting_details"
             else:
-                # All fields complete - check for confirmation
+                # All fields complete - check for confirmation and post-generation flow
                 session_ctx = session_context or {}
                 awaiting_confirmation = session_ctx.get("awaiting_confirmation", False)
                 user_confirmed_generation = session_ctx.get("user_confirmed_generation", False)
                 
-                if not awaiting_confirmation and not user_confirmed_generation:
-                    stage = "awaiting_confirmation"
-                    awaiting_confirmation = True
-                elif user_confirmed_generation:
-                    stage = "confirmed"
-                    ready_to_generate = True
+                # Check if content has already been generated
+                if has_generated_content:
+                    # Post-generation flow: reviewing content or awaiting PDF confirmation
+                    if session_ctx.get("awaiting_pdf_confirmation", False):
+                        stage = "awaiting_pdf_confirmation"
+                        awaiting_confirmation = False
+                        user_confirmed_generation = False
+                        ready_to_generate = False
+                    else:
+                        stage = "reviewing_content"
+                        awaiting_confirmation = False
+                        user_confirmed_generation = False
+                        ready_to_generate = False
                 else:
-                    stage = "awaiting_confirmation"
+                    # Pre-generation flow: collect data and confirm
+                    if not awaiting_confirmation and not user_confirmed_generation:
+                        stage = "awaiting_confirmation"
+                        awaiting_confirmation = True
+                    elif user_confirmed_generation:
+                        stage = "confirmed"
+                        ready_to_generate = True
+                    else:
+                        stage = "awaiting_confirmation"
         
         return {
             "ready_to_generate": ready_to_generate,
@@ -255,26 +269,137 @@ REMEMBER: Only extract what user EXPLICITLY said. No placeholders! Always ask fo
             "completion_percentage": int(((6 - len(missing_mandatory)) / 6) * 100)
         }
     
-    def detect_user_confirmation(self, user_message: str) -> bool:
+    async def detect_user_confirmation(self, user_message: str) -> bool:
         """
-        Detect if user is confirming to generate recommendations.
-        Returns True if user confirmed, False otherwise.
+        Use AI to detect if user is EXPLICITLY confirming to generate recommendations.
+        Returns True ONLY if user explicitly confirmed, False otherwise.
         """
-        message_lower = user_message.lower().strip()
-        
-        # Confirmation phrases
-        confirmation_phrases = [
-            "yes", "yeah", "yep", "sure", "ok", "okay", "alright", "go ahead", 
-            "generate", "create", "make", "do it", "proceed", "continue", 
-            "sounds good", "let's go", "please", "absolutely", "definitely"
-        ]
-        
-        # Check if message contains confirmation
-        for phrase in confirmation_phrases:
-            if phrase in message_lower:
-                return True
-        
-        return False
+        try:
+            response = await httpx.AsyncClient().post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}"},
+                json={
+                    "model": "gpt-3.5-turbo",
+                    "messages": [
+                        {
+                            "role": "system", 
+                            "content": """You are analyzing whether a user message is confirming they want to generate event recommendations.
+
+CONTEXT: The user has provided all their event details and the system asked "Would you like me to generate your recommendations now?"
+
+TASK: Determine if the user's response is confirming they want generation to start.
+
+CONFIRMATIONS (TRUE):
+- "yes" / "yeah" / "yep"
+- "go ahead" / "sure" / "okay" 
+- "generate" / "create" / "start"
+- "do it" / "proceed"
+- Any message with words like "generate", "create", "start", "begin" in context of recommendations
+- "generate i have confirmed begin generating" → TRUE
+- "ok generate" → TRUE
+
+NOT CONFIRMATIONS (FALSE):
+- Providing more event details
+- Asking questions about the event
+- Giving requirements or preferences
+- Messages that don't mention generation/confirmation
+
+RULE: If the message contains confirmation words or generation intent, return TRUE.
+
+Return ONLY: true or false"""
+                        },
+                        {
+                            "role": "user",
+                            "content": f"User message: '{user_message}'\n\nIs this EXPLICITLY confirming they want generation to start?"
+                        }
+                    ],
+                    "temperature": 0,
+                    "max_tokens": 10
+                },
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                ai_response = result["choices"][0]["message"]["content"].strip().lower()
+                confirmed = ai_response == "true"
+                print(f"🤖 AI confirmation check: '{user_message[:50]}...' → AI says: '{ai_response}' → Confirmed: {confirmed}")
+                return confirmed
+            else:
+                print(f"❌ AI confirmation check failed: {response.status_code} - defaulting to FALSE")
+                return False
+                
+        except Exception as e:
+            print(f"❌ AI confirmation check error: {str(e)} - defaulting to FALSE")
+            return False
+    
+    async def detect_pdf_confirmation(self, user_message: str) -> bool:
+        """
+        Use AI to detect if user is confirming they want a PDF plan generated.
+        Returns True ONLY if user explicitly confirmed PDF generation, False otherwise.
+        """
+        try:
+            response = await httpx.AsyncClient().post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}"},
+                json={
+                    "model": "gpt-3.5-turbo",
+                    "messages": [
+                        {
+                            "role": "system", 
+                            "content": """You are analyzing whether a user message is confirming they want a PDF event plan generated.
+
+CRITICAL: Be VERY strict. Only return TRUE if the user is clearly saying YES to PDF generation.
+
+CONTEXT: The user has reviewed their event recommendations and the system asked "Would you like me to create a detailed PDF plan for your event?"
+
+TASK: Determine if the user's response is EXPLICITLY confirming they want a PDF plan created.
+
+EXPLICIT PDF CONFIRMATIONS (TRUE):
+- "yes, create the PDF"
+- "generate the plan"
+- "make the PDF"
+- "yes, I want the plan"
+- "create it"
+- "go ahead with the PDF"
+- "generate the PDF plan"
+
+NOT PDF CONFIRMATIONS (FALSE):
+- "I like the music recommendations" (just feedback)
+- "what venues do you recommend?" (asking questions)
+- "the colors look good" (giving preferences)
+- "can you change something?" (requesting modifications)
+- "I prefer venue 2" (stating preferences)
+- Any message just giving feedback or preferences
+
+RULE: When in doubt, return FALSE. Only return TRUE for clear, explicit PDF confirmation.
+
+Return ONLY: true or false"""
+                        },
+                        {
+                            "role": "user",
+                            "content": f"User message: '{user_message}'\n\nIs this EXPLICITLY confirming they want a PDF plan created?"
+                        }
+                    ],
+                    "temperature": 0,
+                    "max_tokens": 10
+                },
+                timeout=10.0
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                ai_response = result["choices"][0]["message"]["content"].strip().lower()
+                confirmed = ai_response == "true"
+                print(f"🤖 AI PDF confirmation check: '{user_message[:50]}...' → AI says: '{ai_response}' → PDF Confirmed: {confirmed}")
+                return confirmed
+            else:
+                print(f"❌ AI PDF confirmation check failed: {response.status_code} - defaulting to FALSE")
+                return False
+                
+        except Exception as e:
+            print(f"❌ AI PDF confirmation check error: {str(e)} - defaulting to FALSE")
+            return False
     
     async def ai_extract_data(self, conversation_text: str) -> Dict[str, Any]:
         """

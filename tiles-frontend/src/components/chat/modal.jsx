@@ -426,6 +426,7 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
                             venueData={msg.venue_data}
                             aiSuggestions={msg.ai_suggestions}
                             isGenerating={msg.isGenerating}
+                            chatId={currentChatId}
                           />
                         ))}
                         <div ref={messagesEndRef} />

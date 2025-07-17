@@ -248,26 +248,38 @@ async def generate_event_plan_pdf(
 ):
     """Generate comprehensive event plan PDF"""
     try:
+        print(f"🔍 PDF request for chat_id: {chat_id}")
         # Get chat session and plan data
         chat_session = db.query(ChatSession).filter(ChatSession.session_id == chat_id).first()
         if not chat_session:
+            print(f"❌ No chat session found for ID: {chat_id}")
+            # List available sessions for debugging
+            available_sessions = db.query(ChatSession).all()
+            print(f"🔍 Available sessions: {[s.session_id for s in available_sessions]}")
             raise HTTPException(status_code=404, detail="Chat session not found")
         
         # Get event data from plan sessions
         from database import PlanSession
-        plan_session = db.query(PlanSession).filter(PlanSession.user_session == chat_session.user_session).first()
+        plan_session = db.query(PlanSession).filter(PlanSession.chat_session_id == chat_session.id).first()
         
         if not plan_session or not plan_session.generated_content:
+            print(f"❌ No plan session or generated content found")
+            print(f"🔍 Plan session exists: {plan_session is not None}")
+            if plan_session:
+                print(f"🔍 Generated content exists: {plan_session.generated_content is not None}")
             raise HTTPException(status_code=400, detail="No generated content found for this event")
         
-        # Extract event data
+        # Extract event data from plan session suggestions (where the real data is!)
+        suggestions = plan_session.generated_content.get('suggestions', {})
+        print(f"🔍 Plan session suggestions: {suggestions}")
+        
         event_data = {
-            'event_type': plan_session.event_context.get('event_type', 'Event'),
-            'location': plan_session.event_context.get('location', 'Not specified'),
-            'guest_count': plan_session.event_context.get('guest_count', 'Not specified'),
-            'budget': plan_session.event_context.get('budget', 'Not specified'),
-            'meal_type': plan_session.event_context.get('meal_type', 'Not specified'),
-            'dietary_restrictions': plan_session.event_context.get('dietary_restrictions', 'None')
+            'event_type': suggestions.get('event_type', 'Event'),
+            'location': suggestions.get('location', 'Not specified'),
+            'guest_count': suggestions.get('guest_count', 'Not specified'),
+            'budget': suggestions.get('budget', 'Not specified'),
+            'meal_type': suggestions.get('meal_type', 'Not specified'),
+            'dietary_restrictions': suggestions.get('dietary_restrictions', 'None')
         }
         
         # Extract user selections (generated content)

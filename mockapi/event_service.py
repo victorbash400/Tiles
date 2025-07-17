@@ -185,18 +185,30 @@ class EventService:
         if not has_specific_location:
             missing_fields.append("specific location (city + country)")
         
+        # Check if we're in post-generation phase (prevent double generation)
+        conversation_stage = ai_response.get("conversation_stage", "")
+        if conversation_stage in ["reviewing_content", "awaiting_pdf_confirmation", "pdf_generation"]:
+            print(f"🚫 Skipping generation - in post-generation phase: {conversation_stage}")
+            return {"images": [], "music": [], "venues": [], "food": [], "has_content": False, "total_count": 0}
+        
         ai_ready = ai_response.get("ready_to_generate", False)
         all_fields_complete = len(missing_fields) == 0
+        user_confirmed = ai_response.get("user_confirmed_generation", False)
         
-        print(f"🔍 Generation check: AI ready={ai_ready}, all_fields_complete={all_fields_complete}")
+        print(f"🔍 Generation check: AI ready={ai_ready}, all_fields_complete={all_fields_complete}, user_confirmed={user_confirmed}")
         if missing_fields:
             print(f"⚠️ Missing mandatory fields: {missing_fields}")
         
-        if not (ai_ready and ai_response.get("image_generation_prompt") and all_fields_complete):
+        if not (ai_ready and ai_response.get("image_generation_prompt") and all_fields_complete and user_confirmed):
             if ai_ready and not all_fields_complete:
                 print(f"⚠️ AI wanted to generate but missing: {missing_fields}")
                 ai_response["message"] = f"I need a few more details to create the perfect event for you! 🎯 Please tell me: {', '.join(missing_fields[:3])}"
                 ai_response["ready_to_generate"] = False
+            elif ai_ready and all_fields_complete and not user_confirmed:
+                print(f"⚠️ All fields complete but user hasn't confirmed generation")
+                ai_response["message"] = "I have all your event details! Would you like me to generate your personalized recommendations now? Just say 'yes' or 'go ahead' to start! 🎉"
+                ai_response["ready_to_generate"] = False
+                ai_response["awaiting_confirmation"] = True
             return {"images": [], "music": [], "venues": [], "food": [], "has_content": False, "total_count": 0}
         
         try:

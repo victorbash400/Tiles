@@ -128,11 +128,15 @@ class ChatService:
             event_context["event_type"] = ai_response["suggestions"]["event_type"]
             event_context["title"] = f"{ai_response['suggestions']['event_type']} Planning"
         
-        # Track confirmation state
+        # Track confirmation state and post-generation flow
         session_context = event_context.get("session_context", {})
         session_context["awaiting_confirmation"] = ai_response.get("awaiting_confirmation", False)
         session_context["user_confirmed_generation"] = ai_response.get("user_confirmed_generation", False)
         session_context["conversation_stage"] = ai_response.get("conversation_stage", "greeting")
+        
+        # Track post-generation states
+        session_context["awaiting_pdf_confirmation"] = ai_response.get("awaiting_pdf_confirmation", False)
+        session_context["pdf_confirmed"] = ai_response.get("pdf_confirmed", False)
         
         event_context["session_context"] = session_context
         session.event_context = event_context

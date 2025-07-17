@@ -76,20 +76,11 @@ class PDFPlanGenerationService:
         # Event Overview
         story.extend(self._create_event_overview(event_data))
         
-        # Recommendations sections
-        if user_selections:
-            if user_selections.get('music'):
-                story.extend(self._create_music_section(user_selections['music']))
-            
-            if user_selections.get('venues'):
-                story.extend(self._create_venues_section(user_selections['venues']))
-            
-            if user_selections.get('food'):
-                story.extend(self._create_food_section(user_selections['food']))
+        # Generate AI-powered comprehensive plan
+        ai_plan = await self._generate_ai_plan(event_data, user_selections)
         
-        # Timeline and checklist
-        story.extend(self._create_timeline_section(event_data))
-        story.extend(self._create_checklist_section(event_data))
+        # Add AI-generated sections
+        story.extend(self._create_ai_generated_sections(ai_plan))
         
         # Footer
         story.append(Spacer(1, 20))
@@ -230,17 +221,252 @@ class PDFPlanGenerationService:
         content.append(Spacer(1, 15))
         return content
     
+    async def _generate_ai_plan(self, event_data: Dict, user_selections: Dict) -> Dict:
+        """Generate comprehensive event plan using GPT-4"""
+        
+        # Prepare context for AI
+        context = f"""
+Event Details:
+- Type: {event_data.get('event_type', 'Event')}
+- Location: {event_data.get('location', 'Not specified')}
+- Guest Count: {event_data.get('guest_count', 'Not specified')}
+- Budget: {event_data.get('budget', 'Not specified')}
+- Meal Type: {event_data.get('meal_type', 'Not specified')}
+- Dietary Restrictions: {event_data.get('dietary_restrictions', 'None')}
+
+Generated Recommendations:
+- Music: {len(user_selections.get('music', []))} curated tracks
+- Venues: {len(user_selections.get('venues', []))} recommended venues
+- Food: {len(user_selections.get('food', []))} catering options
+
+Selected Venues:
+{self._format_venues_for_ai(user_selections.get('venues', []))}
+
+Selected Music:
+{self._format_music_for_ai(user_selections.get('music', []))}
+
+Selected Food:
+{self._format_food_for_ai(user_selections.get('food', []))}
+"""
+
+        prompt = f"""You are an expert event planner creating a comprehensive wedding plan. Use your knowledge of event planning best practices, local considerations, and cultural factors.
+
+{context}
+
+Create a detailed, professional event plan that leverages both the provided data and your internal knowledge about event planning, venues, costs, and logistics.
+
+Return a well-structured JSON with these sections:
+
+{{
+  "executive_summary": "2-3 paragraph vision and overview of this specific event",
+  "timeline": [
+    "6 months before: Specific actionable task for this event type and location",
+    "4 months before: Another specific task",
+    "2 months before: Another task",
+    "1 month before: Another task", 
+    "1 week before: Another task",
+    "Day of: Event execution steps"
+  ],
+  "budget_breakdown": {{
+    "venue": "Cost estimate - Specific venue costs for {event_data.get('location', 'the location')}",
+    "catering": "Cost estimate - Catering costs for {event_data.get('guest_count', 'guests')} with {event_data.get('dietary_restrictions', 'dietary restrictions')}",
+    "music": "Cost estimate - Music and entertainment",
+    "decorations": "Cost estimate - Decorations and flowers",
+    "photography": "Cost estimate - Photography services",
+    "transportation": "Cost estimate - Guest transportation",
+    "miscellaneous": "Cost estimate - Contingency and extras"
+  }},
+  "vendor_coordination": "Detailed vendor management strategy using the selected venues/music/food",
+  "guest_experience": "Comprehensive guest experience from arrival to departure",
+  "logistics": "Practical setup, execution, and breakdown procedures",
+  "final_checklist": [
+    "Task 1: Specific actionable item",
+    "Task 2: Another specific item",
+    "Task 3: Another specific item"
+  ]
+}}
+
+Make this plan:
+- Specific to {event_data.get('location', 'the specified location')} and its local culture and logistics
+- Realistic for the {event_data.get('budget', 'specified budget')} with actual cost estimates appropriate for this location
+- Account for location-specific considerations and local customs
+- Include cultural considerations appropriate for this location and event type
+- Use the provided music, venue, and food selections
+- Be professional, detailed, and actionable"""
+
+        try:
+            print(f"🤖 Calling GPT-4 for PDF generation...")
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": "gpt-4.1-2025-04-14",
+                        "messages": [{"role": "user", "content": prompt}],
+                        "response_format": {"type": "json_object"},
+                        "temperature": 0.7,
+                        "max_tokens": 2500
+                    },
+                    timeout=60.0
+                )
+                
+                print(f"🔍 GPT-4 response status: {response.status_code}")
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    content = result["choices"][0]["message"]["content"]
+                    print(f"🔍 GPT response length: {len(content)} chars")
+                    
+                    # Parse the JSON response
+                    try:
+                        import json
+                        parsed_plan = json.loads(content)
+                        print(f"✅ Successfully parsed JSON with keys: {list(parsed_plan.keys())}")
+                        return parsed_plan
+                    except json.JSONDecodeError as e:
+                        print(f"❌ JSON parsing error: {e}")
+                        print(f"🔍 Raw content: {content}")
+                        # Fallback to text content
+                        return {"executive_summary": content}
+                else:
+                    print(f"❌ GPT API error: {response.status_code}")
+                    print(f"🔍 Response: {response.text}")
+                        
+        except Exception as e:
+            print(f"❌ AI plan generation error: {e}")
+            import traceback
+            traceback.print_exc()
+            
+        # Fallback plan
+        return {
+            "executive_summary": f"A comprehensive {event_data.get('event_type', 'event')} plan for {event_data.get('guest_count', 'your guests')} in {event_data.get('location', 'your chosen location')}.",
+            "timeline": ["6 months before: Initial planning", "3 months before: Vendor bookings", "1 month before: Final preparations", "Day of: Event execution"],
+            "budget_breakdown": f"Budget allocation for {event_data.get('budget', 'your budget')} across venue, catering, entertainment, and extras.",
+            "vendor_coordination": "Coordinate with selected venues, music providers, and catering services.",
+            "guest_experience": "Ensure comfortable and memorable experience for all attendees.",
+            "logistics": "Detailed setup, execution, and cleanup procedures.",
+            "final_checklist": "Complete checklist of all required tasks and preparations."
+        }
+    
+    def _format_venues_for_ai(self, venues: List[Dict]) -> str:
+        """Format venue data for AI context"""
+        if not venues:
+            return "No venues selected"
+        
+        formatted = []
+        for venue in venues:
+            formatted.append(f"- {venue.get('name', 'Unknown')}: {venue.get('address', 'No address')} (Rating: {venue.get('business_rating', 'N/A')})")
+        return "\n".join(formatted)
+    
+    def _format_music_for_ai(self, music: List[Dict]) -> str:
+        """Format music data for AI context"""
+        if not music:
+            return "No music selected"
+        
+        formatted = []
+        for track in music:
+            formatted.append(f"- {track.get('title', 'Unknown')}: {track.get('artist', 'Unknown Artist')}")
+        return "\n".join(formatted)
+    
+    def _format_food_for_ai(self, food: List[Dict]) -> str:
+        """Format food data for AI context"""
+        if not food:
+            return "No food selected"
+        
+        formatted = []
+        for item in food:
+            formatted.append(f"- {item.get('name', 'Unknown')}: {item.get('cuisine_type', 'Unknown cuisine')} ({item.get('price_range', 'Price TBD')})")
+        return "\n".join(formatted)
+    
+    def _create_ai_generated_sections(self, ai_plan: Dict) -> List:
+        """Create PDF sections from AI-generated plan"""
+        content = []
+        
+        # Executive Summary
+        if ai_plan.get('executive_summary'):
+            content.append(Paragraph("Executive Summary", self.styles['SectionHeader']))
+            content.append(Paragraph(ai_plan['executive_summary'], self.styles['Normal']))
+            content.append(Spacer(1, 15))
+        
+        # Timeline
+        if ai_plan.get('timeline'):
+            content.append(Paragraph("📅 Detailed Timeline", self.styles['SectionHeader']))
+            timeline_items = ai_plan['timeline']
+            if isinstance(timeline_items, list):
+                for item in timeline_items:
+                    content.append(Paragraph(f"• {item}", self.styles['RecommendationItem']))
+            else:
+                content.append(Paragraph(timeline_items, self.styles['Normal']))
+            content.append(Spacer(1, 15))
+        
+        # Budget Breakdown
+        if ai_plan.get('budget_breakdown'):
+            content.append(Paragraph("💰 Budget Breakdown", self.styles['SectionHeader']))
+            budget_data = ai_plan['budget_breakdown']
+            
+            if isinstance(budget_data, dict):
+                # Format as structured budget items
+                for category, cost in budget_data.items():
+                    content.append(Paragraph(f"• {category.title()}: {cost}", self.styles['RecommendationItem']))
+            else:
+                # Fallback to text
+                content.append(Paragraph(budget_data, self.styles['Normal']))
+            content.append(Spacer(1, 15))
+        
+        # Vendor Coordination
+        if ai_plan.get('vendor_coordination'):
+            content.append(Paragraph("🤝 Vendor Coordination", self.styles['SectionHeader']))
+            content.append(Paragraph(ai_plan['vendor_coordination'], self.styles['Normal']))
+            content.append(Spacer(1, 15))
+        
+        # Guest Experience
+        if ai_plan.get('guest_experience'):
+            content.append(Paragraph("✨ Guest Experience", self.styles['SectionHeader']))
+            content.append(Paragraph(ai_plan['guest_experience'], self.styles['Normal']))
+            content.append(Spacer(1, 15))
+        
+        # Logistics
+        if ai_plan.get('logistics'):
+            content.append(Paragraph("⚙️ Logistics & Operations", self.styles['SectionHeader']))
+            content.append(Paragraph(ai_plan['logistics'], self.styles['Normal']))
+            content.append(Spacer(1, 15))
+        
+        # Final Checklist
+        if ai_plan.get('final_checklist'):
+            content.append(Paragraph("✅ Final Checklist", self.styles['SectionHeader']))
+            checklist_items = ai_plan['final_checklist']
+            if isinstance(checklist_items, list):
+                for item in checklist_items:
+                    content.append(Paragraph(f"☐ {item}", self.styles['RecommendationItem']))
+            else:
+                content.append(Paragraph(checklist_items, self.styles['Normal']))
+            content.append(Spacer(1, 15))
+        
+        return content
+    
     def _generate_timeline_for_event_type(self, event_type: str) -> List[str]:
         """Generate timeline based on event type"""
-        if event_type == 'wedding':
-            return [
-                "6 months before: Book venue and send save-the-dates",
-                "3 months before: Send invitations and finalize catering",
-                "1 month before: Confirm all vendors and final guest count",
-                "1 week before: Final venue walkthrough and rehearsal",
-                "Day of: Setup, ceremony, and reception"
-            ]
-        elif event_type == 'birthday':
+        if 'wedding' in event_type.lower():
+            if 'beach' in event_type.lower():
+                return [
+                    "6 months before: Book beach venue (permits required) and send save-the-dates",
+                    "3 months before: Send invitations with weather contingency info and finalize catering",
+                    "1 month before: Confirm all vendors have beach access and final guest count",
+                    "1 week before: Check weather forecast and confirm backup plans",
+                    "Day of: Setup early (before crowds), ceremony at sunset, reception under stars"
+                ]
+            else:
+                return [
+                    "6 months before: Book venue and send save-the-dates",
+                    "3 months before: Send invitations and finalize catering",
+                    "1 month before: Confirm all vendors and final guest count",
+                    "1 week before: Final venue walkthrough and rehearsal",
+                    "Day of: Setup, ceremony, and reception"
+                ]
+        elif 'birthday' in event_type.lower():
             return [
                 "2 weeks before: Send invitations and plan activities",
                 "1 week before: Confirm guest count and prepare decorations",
@@ -259,20 +485,36 @@ class PDFPlanGenerationService:
     
     def _generate_checklist_for_event_type(self, event_type: str) -> List[str]:
         """Generate checklist based on event type"""
-        if event_type == 'wedding':
-            return [
-                "Book venue and officiant",
-                "Send invitations and track RSVPs",
-                "Arrange catering and bar service",
-                "Hire photographer and videographer",
-                "Plan ceremony and reception music",
-                "Coordinate transportation",
-                "Prepare wedding favors and decorations",
-                "Schedule hair and makeup appointments",
-                "Obtain marriage license",
-                "Plan honeymoon"
-            ]
-        elif event_type == 'birthday':
+        if 'wedding' in event_type.lower():
+            if 'beach' in event_type.lower():
+                return [
+                    "Obtain beach venue permit and confirm access",
+                    "Book officiant experienced with beach ceremonies",
+                    "Send invitations with beach-specific details (attire, weather)",
+                    "Arrange catering with beach setup capabilities",
+                    "Hire photographer familiar with beach/sunset lighting",
+                    "Plan ceremony music (consider wind conditions)",
+                    "Rent tent/umbrellas for weather protection",
+                    "Coordinate guest transportation and parking",
+                    "Prepare welcome bags (sunscreen, water, flip-flops)",
+                    "Schedule hair/makeup (consider beach conditions)",
+                    "Obtain marriage license",
+                    "Plan backup indoor location"
+                ]
+            else:
+                return [
+                    "Book venue and officiant",
+                    "Send invitations and track RSVPs",
+                    "Arrange catering and bar service",
+                    "Hire photographer and videographer",
+                    "Plan ceremony and reception music",
+                    "Coordinate transportation",
+                    "Prepare wedding favors and decorations",
+                    "Schedule hair and makeup appointments",
+                    "Obtain marriage license",
+                    "Plan honeymoon"
+                ]
+        elif 'birthday' in event_type.lower():
             return [
                 "Send invitations to guests",
                 "Plan party activities and games",
