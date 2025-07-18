@@ -1,9 +1,9 @@
 import asyncio
 import re
 from typing import Dict, List, Any
-from sqlalchemy.orm import Session
-from database import (
-    ChatSession, PlanSession, UserMemory,
+# from sqlalchemy.orm import Session
+from dynamodb_database import (
+    ChatSession, ChatMessage, PlanSession, UserMemory,
     get_or_create_plan_session, update_plan_state, get_plan_progress,
     store_user_preference, get_user_preferences
 )
@@ -23,7 +23,7 @@ class EventService:
         message_content: str, 
         session: ChatSession, 
         conversation_history: List[Dict],
-        db: Session
+        db
     ) -> Dict[str, Any]:
         """Process user message and generate AI response with content generation"""
         
@@ -35,17 +35,39 @@ class EventService:
         plan_session = get_or_create_plan_session(db, session.id)
         
         # Build plan context
+        # Query messages count separately for DynamoDB
+        messages = db.query(ChatMessage).filter({'chat_session_id': session.id}).all()
+        
+        # **FIX**: Include session extracted data in plan context
+        session_context = session.event_context.get("session_context", {}) if session.event_context else {}
+        session_context["extracted_data"] = session.event_context.get("extracted_data", {}) if session.event_context else {}
+        
         plan_context = {
             "plan_status": plan_session.plan_status,
-            "message_count": len(session.messages),
+            "message_count": len(messages),
             "generated_content": plan_session.generated_content,
-            "session_context": session.event_context.get("session_context", {}) if session.event_context else {}
+            "session_context": session_context
         }
         
         # Generate AI response
         ai_response = await self._generate_ai_response(
             message_content, conversation_history, plan_context
         )
+        
+        # **FIX**: Save extracted data to plan session immediately (not just after generation)
+        suggestions = ai_response.get("suggestions", {})
+        if any(suggestions.get(field) for field in ["event_type", "location", "guest_count", "budget", "meal_type", "dietary_restrictions"]):
+            # Update plan session with extracted data
+            current_extracted_data = plan_session.generated_content.get("extracted_data", {}) if plan_session.generated_content else {}
+            for field in ["event_type", "location", "guest_count", "budget", "meal_type", "dietary_restrictions"]:
+                if field in suggestions and suggestions[field] is not None:
+                    current_extracted_data[field] = suggestions[field]
+            
+            # Save to plan session
+            plan_content = plan_session.generated_content or {}
+            plan_content["extracted_data"] = current_extracted_data
+            update_plan_state(db, plan_session, plan_session.plan_status, generated_content=plan_content)
+            print(f"💾 Saved extracted data to plan session: {len(current_extracted_data)} fields")
         
         # Generate content if ready
         generated_content = await self._generate_event_content(
@@ -60,12 +82,14 @@ class EventService:
                 "venues": generated_content["venues"],
                 "food": generated_content["food"],
                 "generation_prompt": ai_response.get("image_generation_prompt", ""),
-                "suggestions": ai_response.get("suggestions", {})
+                "suggestions": ai_response.get("suggestions", {}),
+                "extracted_data": plan_session.generated_content.get("extracted_data", {}) if plan_session.generated_content else {}
             }
             update_plan_state(db, plan_session, "reviewing", generated_content=content_data)
             print(f"💾 Saved generated content to plan session")
+            print(f"📊 Content summary: {len(generated_content['images'])} images, {len(generated_content['music'])} music, {len(generated_content['venues'])} venues, {len(generated_content['food'])} food")
         
-        # Prepare AI suggestions
+        # Prepare AI suggestions with generated content
         ai_suggestions = {
             "suggestions": ai_response.get("suggestions", {}),
             "questions": ai_response.get("questions", []),
@@ -75,10 +99,19 @@ class EventService:
             "generated_count": generated_content["total_count"],
             "plan_status": plan_session.plan_status,
             "plan_progress": get_plan_progress(db, session.id)["progress"],
-            "music_data": ai_response.get("music_data", []),
-            "venue_data": ai_response.get("venue_data", []),
+            "image_data": generated_content["images"],
+            "music_data": generated_content["music"],
+            "venue_data": generated_content["venues"],
+            "food_data": generated_content["food"],
             "pdf_requested": ai_response.get("pdf_requested", False)
         }
+        
+        print(f"📤 AI suggestions being sent to frontend:")
+        print(f"   - refresh_gallery: {ai_suggestions['refresh_gallery']}")
+        print(f"   - image_data: {len(ai_suggestions['image_data'])} items")
+        print(f"   - music_data: {len(ai_suggestions['music_data'])} items")
+        print(f"   - venue_data: {len(ai_suggestions['venue_data'])} items")
+        print(f"   - food_data: {len(ai_suggestions['food_data'])} items")
         
         return {
             "ai_response": ai_response,
@@ -174,9 +207,9 @@ class EventService:
             
             if not is_valid:
                 missing_fields.append(description)
+                # Reduced logging: only show invalid fields
                 print(f"❌ Field '{field}' invalid: {value} (type: {type(value)})")
-            else:
-                print(f"✅ Field '{field}' valid: {value}")
+            # Valid fields don't need logging unless debugging
         
         # Special validation for location - must be specific
         location = suggestions.get("location", "")
@@ -220,8 +253,11 @@ class EventService:
             generated_venues = []
             
             if self.ai_service:
-                # Use AI-powered conversation analysis for better data extraction
-                conversation_context = await data_collection_service.analyze_conversation_with_ai(conversation_history, message_content)
+                # **FIX**: Pass session extracted data to AI analysis to prevent memory loss
+                session_extracted_data = session.event_context.get("extracted_data", {}) if session.event_context else {}
+                conversation_context = await data_collection_service.analyze_conversation_with_ai(
+                    conversation_history, message_content, session_extracted_data
+                )
                 
                 # Use AI-extracted location - it's smarter than regex
                 final_location = suggestions.get("location", "")
@@ -242,18 +278,22 @@ class EventService:
                     "user_message": message_content
                 })
                 
-                # Generate images
-                generated_images = await asyncio.wait_for(
-                    self.ai_service.generate_event_images(
-                        ai_response["image_generation_prompt"],
-                        suggestions,
-                        conversation_context
-                    ),
-                    timeout=120.0
-                )
-                print(f"✅ Generated {len(generated_images)} images for gallery")
+                # Generate images (with error handling to not block other services)
+                try:
+                    generated_images = await asyncio.wait_for(
+                        self.ai_service.generate_event_images(
+                            ai_response["image_generation_prompt"],
+                            suggestions,
+                            conversation_context
+                        ),
+                        timeout=60.0
+                    )
+                    print(f"✅ Generated {len(generated_images)} images for gallery")
+                except Exception as e:
+                    print(f"⚠️ Image generation failed: {str(e)}")
+                    generated_images = []
                 
-                # Get music and venue recommendations
+                # Get music and venue recommendations (always run these)
                 if has_specific_location:
                     recommendations = await self.ai_service.get_comprehensive_recommendations(
                         {"event_type": suggestions.get("event_type", "party"), "location": final_location},
@@ -281,7 +321,7 @@ class EventService:
             print(f"Error generating content: {str(e)}")
             return {"images": [], "music": [], "venues": [], "food": [], "has_content": False, "total_count": 0}
     
-    def get_ai_memory(self, user_session: str, db: Session) -> Dict:
+    def get_ai_memory(self, user_session: str, db) -> Dict:
         """Get AI memory/personalization data for isolated chats"""
         # Return simplified response for isolated chats
         return {

@@ -56,6 +56,15 @@ class AIService:
         
         print(f"🔍 Content generation status: has_generated_content={has_generated_content}")
         
+        # **FIX**: Extract previously stored session data to prevent memory loss
+        session_extracted_data = {}
+        if plan_context and "session_context" in plan_context:
+            session_extracted_data = plan_context["session_context"].get("extracted_data", {})
+            if session_extracted_data:
+                print(f"🔄 Found {len(session_extracted_data)} previously extracted fields in session")
+                for field, value in session_extracted_data.items():
+                    print(f"   {field}: {value}")
+        
         # Get the appropriate prompt based on generation state
         prompt = data_collection_service.get_data_collection_prompt(has_generated_content)
         
@@ -82,11 +91,8 @@ class AIService:
             # Add the current message
             messages.append({"role": "user", "content": user_message})
             
-            # Debug: log conversation context being sent to AI
+            # Reduced logging: only show message count
             print(f"🧠 AI context: {len(messages)} messages including current")
-            for i, msg in enumerate(messages):
-                if msg["role"] != "system":
-                    print(f"  {i}: {msg['role']}: {msg['content'][:50]}...")
             
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -124,6 +130,17 @@ class AIService:
                     
                     # Use DataCollectionService to analyze and enhance the response
                     suggestions = result.get("suggestions", {})
+                    
+                    # **FIX**: Merge session extracted data with AI suggestions to prevent memory loss
+                    if session_extracted_data:
+                        # Merge session data with AI suggestions, prioritizing existing session data
+                        for field, value in session_extracted_data.items():
+                            if field not in suggestions or suggestions[field] is None:
+                                suggestions[field] = value
+                                print(f"🔄 Restored from session: {field} = {value}")
+                        
+                        # Update the result with merged suggestions
+                        result["suggestions"] = suggestions
                     
                     # Check if PDF generation was requested
                     if suggestions.get("action_requested") == "generate_pdf":

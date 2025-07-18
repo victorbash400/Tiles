@@ -145,6 +145,15 @@ REMEMBER: Only extract what user EXPLICITLY said. No placeholders! Always ask fo
         Includes confirmation logic to prevent auto-generation.
         Respects generation state to prevent regeneration loops.
         """
+        # **FIX**: Merge session extracted data with current suggestions to prevent memory loss
+        if session_context and "extracted_data" in session_context:
+            session_extracted_data = session_context["extracted_data"]
+            # Merge session data with suggestions, prioritizing existing session data
+            for field, value in session_extracted_data.items():
+                if field not in suggestions or suggestions[field] is None:
+                    suggestions[field] = value
+                    print(f"🔄 Data completeness check - restored from session: {field} = {value}")
+        
         # If content already exists, don't regenerate automatically
         if has_generated_content:
             return {
@@ -215,9 +224,9 @@ REMEMBER: Only extract what user EXPLICITLY said. No placeholders! Always ask fo
             
             if not is_valid:
                 missing_mandatory.append(field)
+                # Reduced logging: only show invalid fields
                 print(f"❌ Field '{field}' invalid: {value}")
-            else:
-                print(f"✅ Field '{field}' valid: {value}")
+            # Valid fields don't need logging unless debugging
         
         # Determine stage and confirmation logic
         stage = "greeting"
@@ -460,9 +469,10 @@ Return JSON:
             print(f"❌ AI extraction error: {str(e)}")
             return {}
     
-    async def analyze_conversation_with_ai(self, conversation_history: List[Dict], user_message: str) -> Dict[str, Any]:
+    async def analyze_conversation_with_ai(self, conversation_history: List[Dict], user_message: str, session_extracted_data: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Simplified AI analysis focusing on core extraction.
+        **FIX**: Include session extracted data to maintain context.
         """
         # Build conversation text
         messages = []
@@ -482,6 +492,13 @@ Return JSON:
         for field, value in extracted.items():
             if value is not None and value != "null":
                 context[field] = value
+        
+        # **FIX**: Merge with session extracted data to prevent memory loss
+        if session_extracted_data:
+            for field, value in session_extracted_data.items():
+                if field not in context or context[field] is None:
+                    context[field] = value
+                    print(f"🔄 AI analysis - preserved from session: {field} = {value}")
         
         # Add metadata
         context["ai_extracted"] = True
