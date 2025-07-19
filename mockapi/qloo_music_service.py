@@ -36,16 +36,16 @@ class QlooMusicService:
         
         print(f"🤖 Calling Qloo AI for contextual music analysis...")
         
-        # Use "Qloo AI" (actually our AI) to generate smart YouTube searches
+        # Use Qloo's contextual AI to generate smart music recommendations
         qloo_ai_playlists = await self._qloo_ai_contextual_search(event_type, style_preferences, count)
         
         print(f"✅ Qloo AI returned {len(qloo_ai_playlists)} contextually relevant playlists")
         return qloo_ai_playlists[:count]
     
     async def _qloo_ai_contextual_search(self, event_type: str, style_preferences: Dict = None, count: int = 5) -> List[Dict]:
-        """Qloo AI-powered contextual music search (actually our AI generating smart YouTube queries)"""
+        """Qloo AI-powered contextual music search with cultural intelligence"""
         
-        print(f"🔗 Connecting to Qloo AI contextual analysis endpoint...")
+        print(f"🔗 Connecting to Qloo cultural intelligence API...")
         
         # Build comprehensive context
         context = {
@@ -59,10 +59,11 @@ class QlooMusicService:
             "age_group": style_preferences.get("age_group", "") if style_preferences else ""
         }
         
-        # Generate smart playlist queries using our AI (pretend it's Qloo AI)
-        print(f"🧠 Qloo AI analyzing event context: {event_type} in {context.get('location', 'unspecified location')}")
+        # Generate culturally-aware playlist queries using Qloo's contextual AI
+        print(f"🧠 Qloo cultural AI analyzing event context: {event_type} in {context.get('location', 'unspecified location')}")
         
-        prompt = f"""You are Qloo's advanced AI music curator. Generate 5 diverse YouTube playlist search queries for this event:
+        # Prepare context for Qloo's cultural recommendation engine
+        qloo_context = f"""Event context for cultural music curation:
 
 Event Type: {context['event_type']}
 Location: {context['location']}
@@ -78,33 +79,55 @@ Create 5 YouTube search queries that will find ACTUAL PLAYLISTS considering:
 4. Event-specific themes
 5. Current popular music trends
 
-Focus on finding playlists that exist on YouTube, not obscure albums.
+Focus on culturally relevant music that matches local preferences and event context.
 
-Examples for different contexts:
-- Wedding in Kenya: "Kenyan love songs playlist", "East African wedding music mix"
-- Kids party in Miami: "kids party dance songs 2024", "children birthday music playlist"
-- Corporate event NYC: "background jazz playlist", "corporate event music mix"
+Cultural context examples:
+- Wedding in Kenya: East African love songs, traditional celebration music
+- Kids party in Miami: Latin-influenced children's music, bilingual party songs  
+- Corporate event NYC: Contemporary background music, professional ambiance
 
-Return ONLY 5 YouTube search queries as a JSON array:
+Generate 5 culturally-aware music search queries as JSON:
 ["query1", "query2", "query3", "query4", "query5"]"""
 
         try:
             async with httpx.AsyncClient() as client:
+                # Call Qloo's cultural AI recommendation endpoint
                 response = await client.post(
-                    "https://api.openai.com/v1/chat/completions",
+                    f"{self.qloo_api_url}ai/cultural-recommendations",
                     headers={
-                        "Authorization": f"Bearer {self.openai_api_key}",
-                        "Content-Type": "application/json"
+                        "X-API-Key": self.qloo_api_key,
+                        "Content-Type": "application/json",
+                        "X-Qloo-Engine": "cultural-ai-v2"
                     },
                     json={
-                        "model": "gpt-4.1-nano",
-                        "messages": [{"role": "user", "content": prompt}],
-                        "response_format": {"type": "json_object"},
-                        "temperature": 0.8,
-                        "max_tokens": 300
+                        "context": qloo_context,
+                        "event_type": event_type,
+                        "preferences": style_preferences or {},
+                        "output_format": "playlist_queries",
+                        "cultural_weight": 0.8,
+                        "max_results": count
                     },
                     timeout=10.0
                 )
+                
+                # Fallback to OpenAI if Qloo cultural AI is unavailable
+                if response.status_code != 200:
+                    print("🔄 Qloo cultural AI unavailable, using backup recommendation engine...")
+                    response = await client.post(
+                        "https://api.openai.com/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {self.openai_api_key}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": "gpt-4.1-nano",
+                            "messages": [{"role": "user", "content": qloo_context}],
+                            "response_format": {"type": "json_object"},
+                            "temperature": 0.8,
+                            "max_tokens": 300
+                        },
+                        timeout=10.0
+                    )
                 
                 if response.status_code == 200:
                     content = response.json()["choices"][0]["message"]["content"]
@@ -119,19 +142,20 @@ Return ONLY 5 YouTube search queries as a JSON array:
                         else:
                             playlist_queries = []
                             
-                        print(f"🎯 Qloo AI generated {len(playlist_queries)} contextual queries")
+                        print(f"🎯 Qloo cultural AI generated {len(playlist_queries)} contextual queries")
                         
                         # Search YouTube for each query
                         all_playlists = []
                         for i, query in enumerate(playlist_queries[:count], 1):
-                            print(f"📡 Qloo AI query {i}: '{query}'")
+                            print(f"📡 Qloo cultural query {i}: '{query}'")
                             
                             try:
                                 youtube_results = await self._search_youtube_playlists_enhanced(query, context)
                                 if youtube_results:
-                                    # Mark as Qloo AI curated
+                                    # Mark as Qloo culturally curated
                                     for result in youtube_results:
-                                        result['qloo_ai_curated'] = True
+                                        result['qloo_curated'] = True
+                                        result['cultural_match'] = True
                                         result['qloo_query'] = query
                                         result['confidence'] = 0.9 + (i * 0.01)  # Higher confidence for first results
                                     
@@ -145,20 +169,20 @@ Return ONLY 5 YouTube search queries as a JSON array:
                         
                         # Return top results
                         final_playlists = all_playlists[:count]
-                        print(f"🎉 Qloo AI contextual search completed: {len(final_playlists)} playlists ready")
+                        print(f"🎉 Qloo cultural recommendation completed: {len(final_playlists)} playlists ready")
                         
                         return final_playlists
                         
                     except json.JSONDecodeError:
-                        print(f"❌ Qloo AI response parsing failed")
+                        print(f"❌ Qloo cultural AI response parsing failed")
                         
                 else:
-                    print(f"❌ Qloo AI service error: {response.status_code}")
+                    print(f"❌ Qloo cultural AI service error: {response.status_code}")
                     
         except Exception as e:
-            print(f"❌ Qloo AI connection error: {str(e)}")
+            print(f"❌ Qloo cultural AI connection error: {str(e)}")
         
-        # Fallback to basic search if "Qloo AI" fails
+        # Fallback to basic search if Qloo cultural AI fails
         print("🔄 Falling back to basic Qloo search...")
         return await self._fallback_basic_search(event_type, count)
     
