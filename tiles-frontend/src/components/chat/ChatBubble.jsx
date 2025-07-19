@@ -16,39 +16,162 @@ export default function ChatBubble({ message, isUser, timestamp, aiSuggestions, 
   const aiTextClasses = `text-stone-800 ${textBaseClasses}`;
   const aiTimestampClasses = "text-xs text-stone-500";
 
-  // AI Typing Animation Component (for when AI is responding/thinking)
-  const TypingAnimation = () => (
-    <div className="flex items-center space-x-2 py-2">
-      <div className="flex items-center space-x-1">
-        <div className="w-1.5 h-1.5 bg-stone-400 rounded-full animate-bounce"></div>
-        <div className="w-1.5 h-1.5 bg-stone-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-        <div className="w-1.5 h-1.5 bg-stone-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-      </div>
-    </div>
-  );
-
-  // AI Generation Animation Component (for when AI is generating content)
-  const GenerationAnimation = () => (
-    <div className="flex items-center space-x-3 py-2">
-      <div className="relative">
-        <div className="w-4 h-4 border-2 border-amber-500/30 rounded-full animate-spin">
-          <div className="absolute inset-0 border-2 border-transparent border-t-amber-500 rounded-full animate-spin"></div>
+  // AI Typing Animation Component (handles both thinking and generating)
+  const TypingAnimation = () => {
+    // Determine if this is likely content generation based on context
+    const isGenerating = aiSuggestions?.ready_to_generate || aiSuggestions?.has_content;
+    
+    return (
+      <div className="flex items-center space-x-4 py-4">
+        {/* Sophisticated animated loader */}
+        <div className="relative">
+          {isGenerating ? (
+            // More complex animation for generation
+            <>
+              <motion.div 
+                className="w-8 h-8 rounded-full border-2 border-amber-200"
+                animate={{ rotate: 360 }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+              />
+              <motion.div 
+                className="absolute inset-0 w-8 h-8 rounded-full border-2 border-transparent border-t-amber-500 border-r-amber-400"
+                animate={{ rotate: 360 }}
+                transition={{ 
+                  duration: 1.5, 
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+              />
+              <motion.div 
+                className="absolute inset-1 w-6 h-6 rounded-full bg-gradient-to-r from-amber-100 to-amber-200"
+                animate={{ 
+                  scale: [0.8, 1, 0.8],
+                  opacity: [0.5, 1, 0.5]
+                }}
+                transition={{ 
+                  duration: 1, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            </>
+          ) : (
+            // Simpler breathing animation for thinking
+            <>
+              <motion.div 
+                className="w-6 h-6 rounded-full bg-gradient-to-r from-amber-100 to-amber-200 opacity-30"
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  opacity: [0.3, 0.6, 0.3]
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+              <motion.div 
+                className="absolute inset-0 w-6 h-6 rounded-full bg-gradient-to-r from-amber-200 to-amber-300 opacity-20"
+                animate={{ 
+                  scale: [1.1, 1.3, 1.1],
+                  opacity: [0.2, 0.4, 0.2]
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: 0.5
+                }}
+              />
+            </>
+          )}
         </div>
-        <div className="absolute inset-0 w-4 h-4 border border-amber-300/20 rounded-full animate-pulse"></div>
+        
+        {/* Animated dots */}
+        <div className="flex items-center space-x-1.5">
+          <motion.div 
+            className="w-2 h-2 rounded-full bg-gradient-to-r from-amber-400 to-amber-500"
+            animate={{ 
+              scale: [1, 1.3, 1],
+              opacity: [0.5, 1, 0.5]
+            }}
+            transition={{ 
+              duration: 1.2, 
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+          <motion.div 
+            className="w-2 h-2 rounded-full bg-gradient-to-r from-amber-400 to-amber-500"
+            animate={{ 
+              scale: [1, 1.3, 1],
+              opacity: [0.5, 1, 0.5]
+            }}
+            transition={{ 
+              duration: 1.2, 
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.2
+            }}
+          />
+          <motion.div 
+            className="w-2 h-2 rounded-full bg-gradient-to-r from-amber-400 to-amber-500"
+            animate={{ 
+              scale: [1, 1.3, 1],
+              opacity: [0.5, 1, 0.5]
+            }}
+            transition={{ 
+              duration: 1.2, 
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.4
+            }}
+          />
+        </div>
+        
+        {/* Context-aware message */}
+        <div className="text-sm">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <motion.span 
+              className="font-semibold bg-gradient-to-r from-amber-700 via-amber-600 to-amber-500 bg-clip-text text-transparent"
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ 
+                duration: 1.5, 
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              {isGenerating ? 'Curating your perfect event' : 'Tiles is thinking'}
+            </motion.span>
+            <br />
+            <motion.span 
+              className="text-xs text-stone-600 font-medium"
+              animate={{ opacity: [0.6, 1, 0.6] }}
+              transition={{ 
+                duration: 1.2, 
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            >
+              {isGenerating 
+                ? 'Generating personalized recommendations...' 
+                : 'Preparing your response...'
+              }
+            </motion.span>
+          </motion.div>
+        </div>
       </div>
-      <div className="flex items-center space-x-1">
-        <div className="w-1 h-1 bg-amber-500 rounded-full animate-pulse"></div>
-        <div className="w-1 h-1 bg-amber-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-        <div className="w-1 h-1 bg-amber-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-        <div className="w-1 h-1 bg-amber-500 rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
-      </div>
-      <div className="text-sm text-stone-600">
-        <span className="font-medium bg-gradient-to-r from-amber-600 to-amber-500 bg-clip-text text-transparent animate-pulse">
-          AI is generating your recommendations...
-        </span>
-      </div>
-    </div>
-  );
+    );
+  };
+
 
   // PDF Download Section Component with loading states
   const PDFDownloadSection = ({ chatId }) => {
@@ -144,12 +267,7 @@ export default function ChatBubble({ message, isUser, timestamp, aiSuggestions, 
         {/* Bubble content */}
         <div className={isUser ? userBubbleClasses : aiBubbleClasses}>
           {isGenerating ? (
-            // Check if this is content generation (has ready_to_generate flag) or just typing
-            aiSuggestions?.ready_to_generate || aiSuggestions?.generation_status === 'generating' ? (
-              <GenerationAnimation />
-            ) : (
-              <TypingAnimation />
-            )
+            <TypingAnimation />
           ) : (
             <p className={isUser ? `text-white ${textBaseClasses}` : aiTextClasses}>
               {message}
