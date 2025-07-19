@@ -1,149 +1,340 @@
-# 🎨 Tiles - AI-Powered Visual Discovery Platform
+<div align="center">
 
-> **Built for the Qloo AI Hackathon** - Showcasing the future of intelligent content discovery and personalization
+# ✨ Tiles
+*Warm, minimal, intentional*
 
-## 🚀 Overview
+[![AI-Powered](https://img.shields.io/badge/AI-Powered-amber?style=for-the-badge&logo=openai&logoColor=white)](https://qloo.com)
+[![Built with Qloo](https://img.shields.io/badge/Built%20with-Qloo%20AI-ff6b35?style=for-the-badge)](https://qloo.com)
+[![React 19](https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=white)](https://react.dev)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Modern-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 
-**Tiles** is a revolutionary visual discovery platform that harnesses the power of **Qloo AI** to create personalized, intelligent gallery experiences. Inspired by Pinterest's visual appeal but supercharged with Qloo's cutting-edge AI capabilities, Tiles transforms how users discover, interact with, and organize visual content.
+**An AI-powered visual discovery platform built for the Qloo AI Hackathon**
 
-### 🤖 Powered by Qloo AI
+*Where intelligent event planning meets beautiful design*
 
-This project demonstrates the incredible potential of **Qloo AI** in creating:
-- **Hyper-personalized content recommendations** based on user preferences and behavior
-- **Intelligent visual search** that understands context and intent
-- **Dynamic content curation** that adapts to user interactions in real-time
-- **Advanced preference learning** that gets smarter with every interaction
+[🚀 Live Demo](#) • [📖 Documentation](#quick-start) • [🎯 Features](#what-makes-tiles-special)
 
-## ✨ Key Features
+</div>
 
-### 🎯 AI-Driven Discovery
-- **Smart Gallery Curation**: Leverages Qloo AI to surface the most relevant images
-- **Contextual Recommendations**: Understands user intent beyond simple keyword matching
-- **Adaptive Learning**: Continuously improves recommendations based on user behavior
+---
 
-### 💬 Intelligent Chat Interface
-- **Natural Language Interaction**: Chat with your gallery using everyday language
-- **Visual Query Understanding**: Ask questions about images and get intelligent responses
-- **Personalized Assistance**: AI remembers your preferences and adapts responses
+## 🌟 What Makes Tiles Special
 
-### 🎨 Beautiful User Experience
-- **Pinterest-Style Layout**: Masonry grid with smooth animations
-- **Responsive Design**: Perfect experience across all devices
-- **Modern UI/UX**: Built with React 19 and TailwindCSS for stunning visuals
+**Tiles** isn't just another gallery app—it's a **smart event planning platform** that uses conversational AI to naturally collect your ideas and transform them into stunning visual experiences. Think Pinterest meets ChatGPT, powered by **Qloo AI's cultural intelligence**.
 
-## 🛠️ Technology Stack
+### 🎭 The Magic Behind Tiles
 
-### Frontend
-- **React 19** - Latest React features for optimal performance
-- **Vite** - Lightning-fast development and build tooling
-- **TailwindCSS** - Utility-first CSS framework for rapid styling
-- **Framer Motion** - Smooth animations and transitions
-- **Axios** - Robust HTTP client for API communication
+```
+💬 "I want to plan a birthday party in Brooklyn for 20 people"
+    ↓ ✨ AI extracts: location, guest count, event type
+    
+🎨 Generates custom imagery with Azure DALL-E 3
+🎵 Finds culturally relevant music via Qloo + YouTube  
+🏛️ Recommends perfect venues using location intelligence
+📋 Creates comprehensive event PDF with all details
+```
 
-### Backend
-- **FastAPI** - Modern, fast Python web framework
-- **Pydantic** - Data validation with Python type hints
-- **HTTPX** - Async HTTP client for external API calls
-- **Unsplash API** - High-quality image content source
+<div align="center">
 
-### AI & Intelligence
-- **Qloo AI** - Core recommendation and personalization engine
-- **Advanced Analytics** - User behavior tracking and insights
-- **Machine Learning** - Continuous improvement of recommendations
+### 🏆 **Built for Qloo AI Hackathon 2024**
+*Showcasing the future of intelligent content discovery and personalization*
 
-## 🎯 Why Qloo AI?
+</div>
 
-**Qloo AI** represents the future of content discovery and recommendation systems. Unlike traditional keyword-based search, Qloo understands:
+---
 
-- **Cultural Context**: Recognizes trends, preferences, and cultural nuances
-- **Cross-Domain Intelligence**: Connects insights across different content types
-- **Real-Time Adaptation**: Adjusts recommendations instantly based on user behavior
-- **Predictive Analytics**: Anticipates user needs before they even realize them
+## 🎯 Core Experience
 
-This project showcases how **Qloo AI** can transform a simple image gallery into an intelligent, personalized discovery platform that truly understands its users.
+<table>
+<tr>
+<td width="50%">
+
+### 💬 **Conversational AI**
+- Natural language event planning
+- Smart data extraction from chat
+- Contextual follow-up questions
+- Memory across conversations
+
+</td>
+<td width="50%">
+
+### 🎨 **Visual Intelligence** 
+- Custom event imagery generation
+- Pinterest-style gallery layout
+- Real-time content updates
+- Adaptive visual recommendations
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🎵 **Cultural Intelligence**
+- Qloo AI music recommendations
+- Location-aware suggestions
+- YouTube integration
+- Genre and mood matching
+
+</td>
+<td width="50%">
+
+### 🏛️ **Smart Venue Discovery**
+- Intelligent venue recommendations
+- Business ratings and reviews
+- Location-based filtering
+- Event-type matching
+
+</td>
+</tr>
+</table>
+
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
-- Python 3.8+
-- Unsplash API key
-- Qloo AI API credentials
+```bash
+Node.js 18+ • Python 3.8+ • Git
+```
 
-### Installation
+### 🎨 Frontend Setup
+```bash
+cd tiles-frontend
+npm install
+npm run dev          # Starts on http://localhost:5173
+```
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/victorbash400/Tiles.git
-   cd Tiles
-   ```
+### 🤖 Backend Setup  
+```bash
+cd mockapi
+python main.py       # Starts on port 3001
+```
 
-2. **Setup Frontend**
-   ```bash
-   cd tiles-frontend
-   npm install
-   npm run dev
-   ```
+### 🔑 Environment Configuration
+Create `.env` in `mockapi/`:
+```env
+# Core AI Services
+OPENAI_API_KEY=your_openai_key
+AZURE_OPENAI_API_KEY=your_azure_key
+AZURE_OPENAI_ENDPOINT=your_azure_endpoint
 
-3. **Setup Backend**
-   ```bash
-   cd mockapi
-   pip install -r requirements.txt
-   python main.py
-   ```
+# Qloo AI (Cultural Intelligence)
+QLOO_API_KEY=your_qloo_key
+QLOO_API_URL=https://hackathon.api.qloo.com/
 
-4. **Configure Environment**
-   ```bash
-   # Add to your .env file
-   UNSPLASH_ACCESS_KEY=your_unsplash_key
-   QLOO_API_KEY=your_qloo_key
-   ```
+# Content Sources
+YOUTUBE_API_KEY=your_youtube_key
+UNSPLASH_ACCESS_KEY=your_unsplash_key
 
-## 🌟 Demo & Features
-
-### Intelligent Gallery
-- **Smart Filtering**: AI-powered image categorization and filtering
-- **Preference Learning**: Gallery adapts to user's visual preferences
-- **Contextual Search**: Find images based on mood, style, or concept
-
-### Conversational Interface
-- **Natural Queries**: "Show me calming nature scenes"
-- **Visual Analysis**: "What's the mood of this image?"
-- **Personalized Recommendations**: "Find more like this for my project"
-
-## 🏆 Hackathon Highlights
-
-This project was built for the **Qloo AI Hackathon** to demonstrate:
-
-1. **Innovation in AI-Powered Discovery**: Showcasing how Qloo AI can revolutionize content discovery
-2. **Practical Implementation**: Real-world application of advanced AI in user-facing products
-3. **Technical Excellence**: Modern full-stack development with cutting-edge technologies
-4. **User-Centric Design**: Intuitive interface that makes AI accessible to everyone
-
-## 🔮 Future Enhancements
-
-- **Advanced Qloo Integration**: Deeper integration with Qloo's recommendation algorithms
-- **Multi-Modal Search**: Combine text, image, and voice search capabilities
-- **Social Features**: Share and collaborate on AI-curated collections
-- **Analytics Dashboard**: Insights into user behavior and AI performance
-- **Mobile App**: Native mobile experience with offline capabilities
-
-## 🤝 Contributing
-
-We welcome contributions! This project showcases the potential of **Qloo AI** and we'd love to see how others can build upon this foundation.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🎉 Acknowledgments
-
-- **Qloo AI Team** - For providing the incredible AI platform that powers this project
-- **Unsplash** - For the beautiful, high-quality images
-- **Open Source Community** - For the amazing tools and libraries used
+# AWS (for deployment)
+AWS_ACCESS_KEY_ID=your_aws_key
+AWS_SECRET_ACCESS_KEY=your_aws_secret
+AWS_REGION=us-east-1
+```
 
 ---
 
-**Built with ❤️ for the Qloo AI Hackathon**
+## 🏗️ Architecture
 
-*Tiles represents the future of AI-powered content discovery, made possible by Qloo's revolutionary approach to understanding user preferences and behavior.*
+<div align="center">
+
+```mermaid
+graph TB
+    A[👤 User Chat] --> B[🤖 AI Services]
+    B --> C[💾 Memory Store]
+    B --> D[🎨 DALL-E 3]
+    B --> E[🎵 Qloo AI]
+    B --> F[🏛️ Venue Service]
+    
+    C --> G[📱 Gallery UI]
+    D --> G
+    E --> G
+    F --> G
+    
+    G --> H[📋 PDF Generation]
+    
+    style A fill:#fbbf24
+    style B fill:#f59e0b
+    style G fill:#d97706
+    style H fill:#92400e
+```
+
+</div>
+
+### 🎯 **Frontend Architecture**
+- **React 19**: Latest features for optimal performance
+- **Vite**: Lightning-fast development
+- **TailwindCSS**: Utility-first styling with amber theme
+- **Framer Motion**: Smooth animations
+- **Modular Components**: Sidebar, Chat, Gallery integration
+
+### 🚀 **Backend Architecture**
+- **FastAPI**: Async Python web framework
+- **Modular Services**: AI, Data Collection, Event Planning
+- **Memory Store**: Fast in-memory context management
+- **DynamoDB**: Persistent storage for production
+- **Serverless Ready**: AWS Lambda compatible
+
+### 🧠 **AI Integration**
+- **OpenAI GPT-3.5**: Conversational interface
+- **Azure DALL-E 3**: Custom image generation
+- **Qloo AI**: Cultural intelligence and recommendations
+- **YouTube API**: Music playlist integration
+- **Smart Context**: Persistent learning across sessions
+
+---
+
+## 🎨 Visual Design Language
+
+<div align="center">
+
+### 🌅 **Warm Amber Palette**
+![#fbbf24](https://via.placeholder.com/15/fbbf24/000000?text=+) `Primary` ![#f59e0b](https://via.placeholder.com/15/f59e0b/000000?text=+) `Secondary` ![#d97706](https://via.placeholder.com/15/d97706/000000?text=+) `Accent` ![#92400e](https://via.placeholder.com/15/92400e/000000?text=+) `Deep`
+
+</div>
+
+- **Typography**: Pacifico for branding, clean sans-serif for content
+- **Spacing**: Generous whitespace with intentional density
+- **Animations**: Subtle, spring-based transitions
+- **Glass Morphism**: Frosted glass effects with backdrop blur
+- **Responsive**: Mobile-first design with elegant scaling
+
+---
+
+## 🔮 Advanced Features
+
+### 🧠 **AI Memory System**
+```typescript
+// Persistent context across conversations
+const memory = {
+  extractedData: { location: "Brooklyn", guests: 20 },
+  generationState: { hasGenerated: true },
+  conversationHistory: [...messages],
+  userPreferences: { style: "modern", budget: "mid-range" }
+}
+```
+
+### 🎯 **Smart Data Collection**
+- **Progressive Enhancement**: Builds detailed profiles through conversation
+- **Context-Aware Validation**: Ensures data quality and completeness  
+- **Natural Extraction**: No forms—just natural conversation
+
+### 🌐 **AWS Serverless Deployment**
+- **Lambda Functions**: Scalable backend execution
+- **DynamoDB**: Global distributed database
+- **CloudFormation**: Infrastructure as code
+- **API Gateway**: RESTful API management
+
+---
+
+## 🏆 Hackathon Innovation
+
+<div align="center">
+
+### 🎯 **Why This Matters for Qloo AI**
+
+</div>
+
+| **Traditional Approach** | **Tiles with Qloo AI** |
+|--------------------------|-------------------------|
+| Static event templates | 🎨 Dynamic, personalized experiences |
+| Generic recommendations | 🎯 Cultural intelligence-driven suggestions |
+| Form-based data entry | 💬 Natural conversation extraction |
+| Disconnected tools | 🔗 Integrated planning ecosystem |
+| One-size-fits-all | 🌍 Location and culture-aware |
+
+### 🚀 **Technical Achievements**
+- ✅ **Real-time AI conversation** with context persistence
+- ✅ **Multi-modal content generation** (images, music, venues)
+- ✅ **Serverless architecture** with AWS deployment
+- ✅ **Cultural intelligence integration** via Qloo API
+- ✅ **Modern React 19** with advanced patterns
+- ✅ **Production-ready** error handling and fallbacks
+
+---
+
+## 🎭 User Journey
+
+<div align="center">
+
+```
+🎯 Discovery → 💬 Conversation → 🎨 Generation → 📋 Planning → 🎉 Execution
+```
+
+</div>
+
+1. **🎯 Discovery**: User opens Tiles and sees beautiful curated gallery
+2. **💬 Conversation**: Natural chat about event ideas and requirements  
+3. **🎨 Generation**: AI creates custom visuals, music, and venue recommendations
+4. **📋 Planning**: Comprehensive PDF with all event details generated
+5. **🎉 Execution**: User has everything needed for a perfect event
+
+---
+
+## 🛠️ Development Commands
+
+```bash
+# Frontend Development
+cd tiles-frontend
+npm run dev          # Development server
+npm run build        # Production build
+npm run preview      # Preview production build
+npm run lint         # ESLint checks
+
+# Backend Development  
+cd mockapi
+python main.py       # Local FastAPI server
+serverless deploy    # Deploy to AWS Lambda
+serverless logs -f api # View deployment logs
+```
+
+---
+
+## 🌟 Future Roadmap
+
+### 🎯 **Short Term**
+- [ ] Enhanced Qloo AI integration with deeper cultural insights
+- [ ] Voice input for hands-free event planning
+- [ ] Mobile-optimized progressive web app
+- [ ] Advanced analytics dashboard
+
+### 🚀 **Long Term**  
+- [ ] Multi-language support with cultural adaptation
+- [ ] Collaborative planning with real-time updates
+- [ ] Integration with calendar and booking systems
+- [ ] AR preview of generated event spaces
+
+---
+
+<div align="center">
+
+## 🤝 Contributing
+
+**We welcome contributions!** This project showcases the potential of AI-powered event planning.
+
+[![GitHub](https://img.shields.io/badge/GitHub-Contribute-fbbf24?style=for-the-badge&logo=github&logoColor=black)](https://github.com/victorbash400/Tiles)
+
+---
+
+## 🎉 Acknowledgments
+
+**🙏 Special Thanks**
+- **Qloo AI Team** - Revolutionary AI platform that makes this possible
+- **OpenAI** - GPT models and DALL-E 3 integration  
+- **Unsplash** - Beautiful, high-quality imagery
+- **YouTube** - Music and playlist integration
+- **React & FastAPI Communities** - Incredible open-source tools
+
+---
+
+<br>
+
+**✨ Built with passion for the Qloo AI Hackathon 2024**
+
+*Tiles represents the future of AI-powered event planning—where technology meets creativity to create unforgettable experiences.*
+
+<br>
+
+[![Made with ❤️ and Qloo AI](https://img.shields.io/badge/Made%20with%20❤️%20and-Qloo%20AI-fbbf24?style=for-the-badge)](https://qloo.com)
+
+</div>
