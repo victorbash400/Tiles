@@ -87,6 +87,10 @@ config/secrets.yml
 CLAUDE.md
 *:Zone.Identifier
 
+# Serverless deployment artifacts
+.serverless/
+serverless.yml
+
 # Large files
 *.zip
 *.tar.gz

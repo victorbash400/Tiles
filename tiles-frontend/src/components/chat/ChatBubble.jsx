@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 
-export default function ChatBubble({ message, isUser, timestamp, imageData, musicData, venueData, aiSuggestions, isGenerating, chatId }) {
+export default function ChatBubble({ message, isUser, timestamp, aiSuggestions, isGenerating, chatId }) {
   // Define base classes for bubbles and text
   const bubbleBaseClasses = "px-4 py-3 rounded-2xl shadow-sm";
   const textBaseClasses = "text-sm whitespace-pre-wrap break-words m-0 leading-relaxed";
@@ -156,59 +156,7 @@ export default function ChatBubble({ message, isUser, timestamp, imageData, musi
             </p>
           )}
 
-          {/* AI-generated images */}
-          {!isUser && imageData && imageData.length > 0 && (
-            <div className="mt-4 space-y-3">
-              <div className="text-xs text-stone-600 font-medium">✨ Visual Inspiration</div>
-              <div className="grid grid-cols-2 gap-2">
-                {imageData.slice(0, 4).map((img, index) => (
-                  <motion.div
-                    key={img.id || index}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="relative group overflow-hidden rounded-xl"
-                  >
-                    <img
-                      src={img.urls?.regular || img.urls?.small}
-                      alt={img.alt_description || 'Event inspiration'}
-                      className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent group-hover:from-black/30 transition-colors duration-300" />
-                  </motion.div>
-                ))}
-              </div>
-              {imageData.length > 4 && (
-                <div className="text-xs text-stone-500 text-center">
-                  +{imageData.length - 4} more images
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* AI-generated music */}
-          {!isUser && musicData && musicData.length > 0 && (
-            <div className="mt-4 space-y-3">
-              <div className="text-xs text-stone-600 font-medium">🎵 Music Recommendations</div>
-              <div className="space-y-2">
-                {musicData.slice(0, 3).map((music, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className="flex items-center gap-3 p-2 rounded-lg bg-stone-50 border border-stone-200"
-                  >
-                    <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                    <div className="flex-1">
-                      <div className="text-xs font-medium text-stone-800">{music.title}</div>
-                      <div className="text-xs text-stone-600">{music.artist}</div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Images and music now only appear in gallery, not in chat */}
 
           {/* PDF Generation */}
           {!isUser && aiSuggestions?.pdf_requested && (
@@ -224,10 +172,7 @@ ChatBubble.propTypes = {
   message: PropTypes.string.isRequired,
   isUser: PropTypes.bool.isRequired,
   timestamp: PropTypes.string,
-  imageData: PropTypes.array,
   isGenerating: PropTypes.bool,
-  musicData: PropTypes.array,
-  venueData: PropTypes.array,
   aiSuggestions: PropTypes.object,
   chatId: PropTypes.string,
 };

@@ -306,14 +306,8 @@ async def generate_event_plan_pdf(
     """Generate comprehensive event plan PDF"""
     try:
         print(f"🔍 PDF request for chat_id: {chat_id}")
-        # Get chat session and plan data
-        chat_session = db.query(ChatSession).filter({'session_id': chat_id}).first()
-        if not chat_session:
-            print(f"❌ No chat session found for ID: {chat_id}")
-            # List available sessions for debugging
-            available_sessions = db.query(ChatSession).all()
-            print(f"🔍 Available sessions: {[s.session_id for s in available_sessions]}")
-            raise HTTPException(status_code=404, detail="Chat session not found")
+        # **FIX**: Just check memory store, skip database session check for PDF
+        # PDF generation only needs the extracted data, not the session object
         
         # **NEW**: Get event data from memory store instead of DynamoDB
         from memory_store import memory_store

@@ -136,7 +136,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-ff890606-06cd",
-                "S3Key": "serverless/tiles-backend/dev/1752927781823-2025-07-19T12:23:01.823Z/tiles-backend.zip"
+                "S3Key": "serverless/tiles-backend/dev/1752938026322-2025-07-19T15:13:46.322Z/tiles-backend.zip"
               },
               "Handler": "lambda_handler.handler",
               "Runtime": "python3.12",
@@ -167,14 +167,14 @@
               "ApiLogGroup"
             ]
           },
-          "ApiLambdaVersionAaAq36hBcIKNP3wCwwHspQRjCwAShQi6MbHxXEUBo": {
+          "ApiLambdaVersionfgDgLwZBO0JRNmyuz6YXgUPR0WVXRoM83lSRwf9Fw8": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ApiLambdaFunction"
               },
-              "CodeSha256": "oZdCYL8DYiv7Ndwo0I3rd+81r2/ZlojKlmrezrW1B0E="
+              "CodeSha256": "DfpW2LFch66lAKDtGKsmOQZukTe5DsiXmr3e/gGQTs4="
             }
           },
           "HttpApi": {
@@ -280,7 +280,7 @@
           "ApiLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ApiLambdaVersionAaAq36hBcIKNP3wCwwHspQRjCwAShQi6MbHxXEUBo"
+              "Ref": "ApiLambdaVersionfgDgLwZBO0JRNmyuz6YXgUPR0WVXRoM83lSRwf9Fw8"
             },
             "Export": {
               "Name": "sls-tiles-backend-dev-ApiLambdaFunctionQualifiedArn"
@@ -356,7 +356,7 @@
         "timeout": 180,
         "runtime": "python3.12",
         "vpc": {},
-        "versionLogicalId": "ApiLambdaVersionAaAq36hBcIKNP3wCwwHspQRjCwAShQi6MbHxXEUBo"
+        "versionLogicalId": "ApiLambdaVersionfgDgLwZBO0JRNmyuz6YXgUPR0WVXRoM83lSRwf9Fw8"
       }
     },
     "configValidationMode": "warn",
@@ -389,7 +389,7 @@
         "artifactsS3KeyDirname": "serverless/tiles-backend/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-ff890606-06cd",
         "artifact": "/home/victor/projects/Tiles/mockapi/.serverless/tiles-backend.zip",
-        "artifactDirectoryName": "serverless/tiles-backend/dev/1752927781823-2025-07-19T12:23:01.823Z"
+        "artifactDirectoryName": "serverless/tiles-backend/dev/1752938026322-2025-07-19T15:13:46.322Z"
       }
     },
     "appId": null,
@@ -398,7 +398,7 @@
     "artifact": "/home/victor/projects/Tiles/mockapi/.serverless/tiles-backend.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/tiles-backend/dev/1752927781823-2025-07-19T12:23:01.823Z",
+    "artifactDirectoryName": "serverless/tiles-backend/dev/1752938026322-2025-07-19T15:13:46.322Z",
     "artifact": "tiles-backend.zip"
   }
 }

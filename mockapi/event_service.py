@@ -79,12 +79,16 @@ class EventService:
         # **NEW**: Build AI suggestions from memory data
         current_memory = memory_store.get_session_summary(chat_id)
         
+        # **REVERT**: Only refresh on NEW generation, not existing content
+        # This prevents constant reloading that breaks PDF generation
+        refresh_gallery_value = generated_content["has_content"]
+        
         ai_suggestions = {
             "suggestions": ai_response.get("suggestions", {}),
             "questions": ai_response.get("questions", []),
             "ready_to_generate": ai_response.get("ready_to_generate", False),
             "generation_status": "Generated and saved to gallery" if generated_content["has_content"] else "No generation requested",
-            "refresh_gallery": generated_content["has_content"],
+            "refresh_gallery": refresh_gallery_value,
             "generated_count": generated_content["total_count"],
             "plan_status": "reviewing" if current_memory["generation_state"]["has_generated"] else "discovering",
             "plan_progress": current_memory["generation_state"].get("has_generated", False) * 1.0,
@@ -175,18 +179,28 @@ class EventService:
         # **FLEXIBLE**: Let AI determine completeness instead of hardcoded validation
         completeness_check = memory_store.check_data_completeness(chat_id)
         
-        # Simple completion check - AI handles the complex validation
+        # Simplified completion check - only 3 essentials needed
         has_essential_data = (
             suggestions.get("event_type") and 
             suggestions.get("location") and 
-            completeness_check["field_count"] >= 4  # At least 4 fields extracted
+            suggestions.get("guest_count")  # Just the 3 core fields
         )
         
         # Check if we're in post-generation phase (prevent double generation)
         conversation_stage = generation_state.get("conversation_stage", "")
         if generation_state.get("has_generated", False) or conversation_stage in ["reviewing_content", "awaiting_pdf_confirmation", "pdf_generation"]:
             print(f"🚫 Skipping generation - already generated or in post-generation phase: {conversation_stage}")
-            return {"images": [], "music": [], "venues": [], "food": [], "has_content": False, "total_count": 0}
+            # Return existing generated content from memory instead of empty arrays
+            existing_content = memory_store.get_generated_content(chat_id)
+            total_count = sum(len(existing_content.get(content_type, [])) for content_type in ["images", "music", "venues", "food"])
+            return {
+                "images": existing_content.get("images", []),
+                "music": existing_content.get("music", []),
+                "venues": existing_content.get("venues", []),
+                "food": existing_content.get("food", []),
+                "has_content": total_count > 0,
+                "total_count": total_count
+            }
         
         ai_ready = ai_response.get("ready_to_generate", False)
         user_confirmed = generation_state.get("user_confirmed", False) or ai_response.get("user_confirmed_generation", False)

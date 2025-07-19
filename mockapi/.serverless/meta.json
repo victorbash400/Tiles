@@ -150,7 +150,7 @@
               "Properties": {
                 "Code": {
                   "S3Bucket": "serverless-framework-deployments-us-east-1-ff890606-06cd",
-                  "S3Key": "serverless/tiles-backend/dev/1752927781823-2025-07-19T12:23:01.823Z/tiles-backend.zip"
+                  "S3Key": "serverless/tiles-backend/dev/1752938026322-2025-07-19T15:13:46.322Z/tiles-backend.zip"
                 },
                 "Handler": "lambda_handler.handler",
                 "Runtime": "python3.12",
@@ -181,14 +181,14 @@
                 "ApiLogGroup"
               ]
             },
-            "ApiLambdaVersionAaAq36hBcIKNP3wCwwHspQRjCwAShQi6MbHxXEUBo": {
+            "ApiLambdaVersionfgDgLwZBO0JRNmyuz6YXgUPR0WVXRoM83lSRwf9Fw8": {
               "Type": "AWS::Lambda::Version",
               "DeletionPolicy": "Retain",
               "Properties": {
                 "FunctionName": {
                   "Ref": "ApiLambdaFunction"
                 },
-                "CodeSha256": "oZdCYL8DYiv7Ndwo0I3rd+81r2/ZlojKlmrezrW1B0E="
+                "CodeSha256": "DfpW2LFch66lAKDtGKsmOQZukTe5DsiXmr3e/gGQTs4="
               }
             },
             "HttpApi": {
@@ -297,7 +297,7 @@
             "ApiLambdaFunctionQualifiedArn": {
               "Description": "Current Lambda function version",
               "Value": {
-                "Ref": "ApiLambdaVersionAaAq36hBcIKNP3wCwwHspQRjCwAShQi6MbHxXEUBo"
+                "Ref": "ApiLambdaVersionfgDgLwZBO0JRNmyuz6YXgUPR0WVXRoM83lSRwf9Fw8"
               },
               "Export": {
                 "Name": "sls-tiles-backend-dev-ApiLambdaFunctionQualifiedArn"
@@ -356,7 +356,7 @@
           "timeout": 180,
           "runtime": "python3.12",
           "vpc": {},
-          "versionLogicalId": "ApiLambdaVersionAaAq36hBcIKNP3wCwwHspQRjCwAShQi6MbHxXEUBo"
+          "versionLogicalId": "ApiLambdaVersionfgDgLwZBO0JRNmyuz6YXgUPR0WVXRoM83lSRwf9Fw8"
         }
       },
       "plugins": [
@@ -388,7 +388,7 @@
         "artifactsS3KeyDirname": "serverless/tiles-backend/dev/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-us-east-1-ff890606-06cd",
         "artifact": "/home/victor/projects/Tiles/mockapi/.serverless/tiles-backend.zip",
-        "artifactDirectoryName": "serverless/tiles-backend/dev/1752927781823-2025-07-19T12:23:01.823Z"
+        "artifactDirectoryName": "serverless/tiles-backend/dev/1752938026322-2025-07-19T15:13:46.322Z"
       }
     },
     "provider": {
@@ -535,7 +535,7 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-us-east-1-ff890606-06cd",
-                "S3Key": "serverless/tiles-backend/dev/1752927781823-2025-07-19T12:23:01.823Z/tiles-backend.zip"
+                "S3Key": "serverless/tiles-backend/dev/1752938026322-2025-07-19T15:13:46.322Z/tiles-backend.zip"
               },
               "Handler": "lambda_handler.handler",
               "Runtime": "python3.12",
@@ -566,14 +566,14 @@
               "ApiLogGroup"
             ]
           },
-          "ApiLambdaVersionAaAq36hBcIKNP3wCwwHspQRjCwAShQi6MbHxXEUBo": {
+          "ApiLambdaVersionfgDgLwZBO0JRNmyuz6YXgUPR0WVXRoM83lSRwf9Fw8": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ApiLambdaFunction"
               },
-              "CodeSha256": "oZdCYL8DYiv7Ndwo0I3rd+81r2/ZlojKlmrezrW1B0E="
+              "CodeSha256": "DfpW2LFch66lAKDtGKsmOQZukTe5DsiXmr3e/gGQTs4="
             }
           },
           "HttpApi": {
@@ -682,7 +682,7 @@
           "ApiLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ApiLambdaVersionAaAq36hBcIKNP3wCwwHspQRjCwAShQi6MbHxXEUBo"
+              "Ref": "ApiLambdaVersionfgDgLwZBO0JRNmyuz6YXgUPR0WVXRoM83lSRwf9Fw8"
             },
             "Export": {
               "Name": "sls-tiles-backend-dev-ApiLambdaFunctionQualifiedArn"
@@ -748,12 +748,12 @@
     "serviceProviderAwsCfStackName": "tiles-backend-dev",
     "serviceProviderAwsCfStackId": "arn:aws:cloudformation:us-east-1:547688237843:stack/tiles-backend-dev/03be4ba0-63a2-11f0-9d76-12abe0fdc253",
     "serviceProviderAwsCfStackCreated": "2025-07-18T06:39:54.841Z",
-    "serviceProviderAwsCfStackUpdated": "2025-07-19T12:12:25.778Z",
+    "serviceProviderAwsCfStackUpdated": "2025-07-19T14:57:44.451Z",
     "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
     "serviceProviderAwsCfStackOutputs": [
       {
         "OutputKey": "ApiLambdaFunctionQualifiedArn",
-        "OutputValue": "arn:aws:lambda:us-east-1:547688237843:function:tiles-backend-dev-api:33",
+        "OutputValue": "arn:aws:lambda:us-east-1:547688237843:function:tiles-backend-dev-api:38",
         "Description": "Current Lambda function version",
         "ExportName": "sls-tiles-backend-dev-ApiLambdaFunctionQualifiedArn"
       },
@@ -883,7 +883,7 @@
           "Properties": {
             "Code": {
               "S3Bucket": "serverless-framework-deployments-us-east-1-ff890606-06cd",
-              "S3Key": "serverless/tiles-backend/dev/1752927781823-2025-07-19T12:23:01.823Z/tiles-backend.zip"
+              "S3Key": "serverless/tiles-backend/dev/1752938026322-2025-07-19T15:13:46.322Z/tiles-backend.zip"
             },
             "Handler": "lambda_handler.handler",
             "Runtime": "python3.12",
@@ -914,14 +914,14 @@
             "ApiLogGroup"
           ]
         },
-        "ApiLambdaVersionAaAq36hBcIKNP3wCwwHspQRjCwAShQi6MbHxXEUBo": {
+        "ApiLambdaVersionfgDgLwZBO0JRNmyuz6YXgUPR0WVXRoM83lSRwf9Fw8": {
           "Type": "AWS::Lambda::Version",
           "DeletionPolicy": "Retain",
           "Properties": {
             "FunctionName": {
               "Ref": "ApiLambdaFunction"
             },
-            "CodeSha256": "oZdCYL8DYiv7Ndwo0I3rd+81r2/ZlojKlmrezrW1B0E="
+            "CodeSha256": "DfpW2LFch66lAKDtGKsmOQZukTe5DsiXmr3e/gGQTs4="
           }
         },
         "HttpApi": {
@@ -1030,7 +1030,7 @@
         "ApiLambdaFunctionQualifiedArn": {
           "Description": "Current Lambda function version",
           "Value": {
-            "Ref": "ApiLambdaVersionAaAq36hBcIKNP3wCwwHspQRjCwAShQi6MbHxXEUBo"
+            "Ref": "ApiLambdaVersionfgDgLwZBO0JRNmyuz6YXgUPR0WVXRoM83lSRwf9Fw8"
           },
           "Export": {
             "Name": "sls-tiles-backend-dev-ApiLambdaFunctionQualifiedArn"

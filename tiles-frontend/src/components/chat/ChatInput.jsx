@@ -22,7 +22,7 @@ const customStyles = `
   }
 `;
 
-function ChatInput({ onSendMessage, hasMessages }) {
+function ChatInput({ onSendMessage, hasMessages, hasActiveChat = true }) {
   const [message, setMessage] = useState('');
   const textareaRef = useRef(null);
 
@@ -82,7 +82,7 @@ function ChatInput({ onSendMessage, hasMessages }) {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="What's on your mind?"
+                  placeholder={hasActiveChat ? "What's on your mind?" : "Click 'Start New Chat' above to begin..."}
                   className="w-full px-3 py-2 bg-transparent border-0 resize-none focus:outline-none text-stone-900 text-base font-normal leading-snug chat-input-textarea"
                   rows="1"
                   style={{
@@ -96,7 +96,7 @@ function ChatInput({ onSendMessage, hasMessages }) {
               <div className="flex-shrink-0 flex items-center">
                 <button
                   onClick={handleSubmit}
-                  disabled={!message.trim()}
+                  disabled={!message.trim() || !hasActiveChat}
                   className="h-10 w-10 text-white rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none transform hover:scale-105 active:scale-95"
                   style={{
                     background: message.trim() ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'rgba(251, 191, 36, 0.3)',
@@ -120,6 +120,7 @@ function ChatInput({ onSendMessage, hasMessages }) {
 ChatInput.propTypes = {
   onSendMessage: PropTypes.func.isRequired,
   hasMessages: PropTypes.bool.isRequired,
+  hasActiveChat: PropTypes.bool,
 };
 
 export default ChatInput;

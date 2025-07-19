@@ -513,13 +513,42 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh, onChat
                         }}>
                           {isNewChat ? 'Let\'s craft the perfect atmosphere' : 'Welcome back!'}
                         </h3>
-                        <p className="text-stone-700 max-w-sm" style={{
+                        <p className="text-stone-700 max-w-sm mb-4" style={{
                           textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
                         }}>
                           {isNewChat
                             ? 'What vision are you bringing to life? Describe your event and let\'s make it unforgettable.'
                             : 'Ready to continue crafting your perfect event?'}
                         </p>
+                        
+                        {/* Show prominent Start Chat button if no active chat */}
+                        {!currentChatId && (
+                          <button
+                            onClick={handleCreateNewChat}
+                            disabled={loading.messages}
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.9) 0%, rgba(217, 119, 6, 0.9) 100%)',
+                              backdropFilter: 'blur(15px)',
+                              border: '1px solid rgba(251, 191, 36, 0.4)',
+                              color: 'white',
+                              textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
+                              boxShadow: '0 4px 12px rgba(251, 191, 36, 0.3)'
+                            }}
+                          >
+                            {loading.messages ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <span>Starting...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-4 h-4" />
+                                <span>Start New Chat</span>
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <>
@@ -529,9 +558,6 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh, onChat
                             message={msg.content}
                             isUser={msg.role === 'user'}
                             timestamp={msg.timestamp}
-                            imageData={msg.image_data}
-                            musicData={msg.music_data}
-                            venueData={msg.venue_data}
                             aiSuggestions={msg.ai_suggestions}
                             isGenerating={msg.isGenerating}
                             chatId={currentChatId}
@@ -639,6 +665,7 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh, onChat
               <ChatInput
                 onSendMessage={handleSendMessage}
                 hasMessages={messages.length > 0}
+                hasActiveChat={!!currentChatId}
               />
             </div>
           )}

@@ -24,14 +24,19 @@ class DataCollectionService:
         
         print("✅ Initialized Streamlined Data Collection Service (AI-only)")
         
-        # Core mandatory fields - simplified
+        # Core mandatory fields - minimal requirements for generation
         self.mandatory_fields = {
             "event_type": "Type of event",
-            "location": "City and country",
-            "guest_count": "Number of guests",
+            "location": "City and country", 
+            "guest_count": "Number of guests"
+        }
+        
+        # Optional fields that enhance the experience but aren't required
+        self.optional_fields = {
             "budget": "Budget amount or style preference",
             "meal_type": "Meal service type",
-            "dietary_restrictions": "Dietary needs"
+            "dietary_restrictions": "Dietary needs",
+            "date": "Event date or timeframe"
         }
     
     def get_data_collection_prompt(self, has_generated_content: bool = False) -> str:
@@ -93,42 +98,46 @@ REMEMBER: Focus on improving the existing recommendations based on user feedback
 
 CRITICAL RULES:
 1. ONLY extract information that the user has EXPLICITLY stated
-2. NEVER fill in placeholder values or list multiple options
-3. If user hasn't answered a question, leave that field as null
-4. For meal_type: MUST be ONE specific type (breakfast/lunch/dinner/cocktails/snacks), not multiple
-5. For dietary_restrictions: Only set if user explicitly mentions them OR says "none"
-6. NEVER auto-generate - always ask for confirmation first
+2. NEVER fill in placeholder values or ask about unnecessary details
+3. If user hasn't mentioned something, leave that field as null
+4. Be conversational and natural - don't interrogate with lists of questions
+5. Accept flexible, casual responses (ranges, approximations, general locations)
+6. Focus on the event vision, not rigid data collection
 
 CONVERSATION FLOW:
-- Greet warmly and ask about the occasion
-- Ask ONE question at a time based on what's missing
-- Build naturally on their responses
-- Never ask for info they already provided
-- When ALL fields are complete, ASK FOR CONFIRMATION before generating
+- Greet warmly and understand their event vision
+- Ask naturally about what's needed for recommendations
+- Build on their excitement and ideas
+- Don't ask for specific details unless crucial for generation
+- When you have enough to create something amazing, ASK FOR CONFIRMATION
 
 CONFIRMATION LOGIC:
-- When all 6 mandatory fields are complete: ready_to_generate = false, awaiting_confirmation = true
-- Ask: "I have all your details! Would you like me to generate your event recommendations now?"
-- Only proceed with generation when user confirms (yes/generate/go ahead/sure/etc.)
+- When you have the essentials (event type, general location, rough guest count): ready_to_generate = false, awaiting_confirmation = true
+- Ask: "I have enough to create some amazing recommendations! Should I generate your personalized event ideas?"
+- Only proceed with generation when user confirms
 
-MANDATORY FIELDS TO COLLECT:
-1. event_type - The type of event (wedding/birthday/corporate/etc)
-2. location - SPECIFIC city + country (not "home" or "outdoor")
-3. guest_count - EXACT number (not "around 50")
-4. budget - Amount with currency OR detailed style description
-5. meal_type - ONE type: breakfast/lunch/dinner/cocktails/snacks/buffet/brunch
-6. dietary_restrictions - Specific restrictions OR "none"
+MINIMAL REQUIRED FIELDS (only ask if missing):
+1. event_type - What kind of event they're planning
+2. location - General area/city where it's happening  
+3. guest_count - Rough idea of how many people (ranges/approximations OK)
+
+OPTIONAL FIELDS (enhance experience but don't require):
+- budget - Amount or style preference (luxury/budget/mid-range)
+- meal_type - Food/drink needs if relevant to event
+- dietary_restrictions - Only if they mention it
+- date - Only if they want to mention it (don't ask specifically)
 
 RESPOND WITH JSON:
 {
     "message": "Your warm response and next question",
     "suggestions": {
         "event_type": null or "specific type if stated",
-        "location": null or "city, country if stated",
-        "guest_count": null or exact number if stated,
-        "budget": null or "amount/style if stated",
-        "meal_type": null or "ONE meal type if stated",
-        "dietary_restrictions": null or "restrictions/none if stated"
+        "location": null or "area/city if stated",
+        "guest_count": null or number/range if stated,
+        "budget": null or "amount/style if mentioned",
+        "meal_type": null or "meal type if mentioned",
+        "dietary_restrictions": null or "restrictions/none if mentioned",
+        "date": null or "timeframe if mentioned"
     },
     "ready_to_generate": false,
     "awaiting_confirmation": false (true when all fields complete),
@@ -172,54 +181,39 @@ REMEMBER: Only extract what user EXPLICITLY said. No placeholders! Always ask fo
             is_valid = False
             
             if field == "guest_count":
-                # Must be a positive number
+                # More flexible guest count - accept ranges and approximations
                 if isinstance(value, (int, float)):
                     is_valid = value > 0
-                elif isinstance(value, str) and value.isdigit():
-                    suggestions[field] = int(value)
-                    is_valid = int(value) > 0
-                    
-            elif field == "meal_type":
-                # Use AI to validate if it's a legitimate meal type (no hardcoded lists!)
-                if isinstance(value, str) and len(value.strip()) > 0:
-                    value_clean = value.strip()
-                    # Check it's not multiple types (no slashes, commas, or "or")
-                    if "/" not in value and "," not in value and " or " not in value.lower():
-                        # Simple check: if it's a reasonable food/meal word, it's valid
-                        # No AI call needed - just check it's not empty and not multiple options
-                        is_valid = len(value_clean) >= 3
-                    else:
-                        is_valid = False
-                    
-            elif field == "dietary_restrictions":
-                # Can be "none" or actual restrictions
-                if isinstance(value, str):
-                    value_clean = value.lower().strip()
-                    is_valid = (
-                        value_clean in ["none", "no", "no restrictions"] or
-                        (len(value_clean) >= 3 and value_clean not in ["unspecified", "not specified"])
-                    )
-                elif isinstance(value, list) and len(value) > 0:
-                    is_valid = True
+                elif isinstance(value, str):
+                    value_clean = value.strip().lower()
+                    # Accept numbers, ranges like "10-15", "around 20", "about 50"
+                    if any(word in value_clean for word in ["around", "about", "roughly", "approximately"]):
+                        is_valid = True
+                    elif "-" in value_clean or "to" in value_clean:
+                        is_valid = True
+                    elif value.isdigit():
+                        suggestions[field] = int(value)
+                        is_valid = int(value) > 0
+                    elif any(char.isdigit() for char in value_clean):
+                        is_valid = True  # Has some numbers, good enough
                     
             elif field == "location":
-                # Must be specific city/country, not generic
+                # Much more flexible location - accept general areas
                 if isinstance(value, str):
-                    value_clean = value.lower().strip()
-                    generic_terms = ["home", "house", "outdoor", "indoor", "venue", "backyard", "office"]
+                    value_clean = value.strip()
+                    # Just needs to be more than a few characters and not completely empty
                     is_valid = (
-                        len(value_clean) >= 5 and
-                        not any(value_clean == term for term in generic_terms) and
-                        value_clean not in ["unspecified", "not specified"]
+                        len(value_clean) >= 3 and
+                        value_clean.lower() not in ["unspecified", "not specified", "tbd"]
                     )
                     
-            else:
-                # Budget and event_type - must be non-empty and not placeholder
+            elif field == "event_type":
+                # Very flexible event type - just needs something meaningful
                 if isinstance(value, str):
                     value_clean = value.strip()
                     is_valid = (
-                        len(value_clean) >= 2 and
-                        value_clean.lower() not in ["unspecified", "not specified", "tbd", "unknown"]
+                        len(value_clean) >= 3 and
+                        value_clean.lower() not in ["unspecified", "not specified", "tbd", "unknown", "event"]
                     )
             
             if not is_valid:
