@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 # from sqlalchemy.orm import Session
 from dynamodb_database import ChatSession, ChatMessage
 from models import MessageResponse, ChatSessionResponse
+from memory_store import memory_store
 
 class ChatService:
     """Handles chat session and message operations"""
@@ -115,58 +116,47 @@ class ChatService:
         return ai_message
     
     def build_conversation_history(self, session: ChatSession, db) -> List[Dict]:
-        """Build conversation history for AI context"""
-        print(f"🔍 Building conversation history for session.id: {session.id}")
-        conversation_history = []
-        chat_messages = db.query(ChatMessage).filter({'chat_session_id': session.id}).all()
-        print(f"🔍 Found {len(chat_messages)} messages for session.id: {session.id}")
-        for msg in chat_messages:
-            conversation_history.append({
-                "role": msg.role,
-                "content": msg.content
+        """Build conversation history for AI context - now uses memory store"""
+        chat_id = session.session_id
+        conversation_history = memory_store.get_conversation_history(chat_id, limit=25)
+        print(f"🧠 Built conversation history from memory: {len(conversation_history)} messages for chat {chat_id[:8]}")
+        
+        # Convert memory format to AI format
+        ai_history = []
+        for msg in conversation_history:
+            ai_history.append({
+                "role": msg["role"],
+                "content": msg["content"]
             })
-        return conversation_history
+        return ai_history
     
     def update_session_context(self, session: ChatSession, ai_response: Dict, db):
-        """Update session context with event information and confirmation state"""
-        event_context = session.event_context or {}
+        """Update session context - now delegates to memory store"""
+        chat_id = session.session_id
         
-        # Update event type and title
-        if ai_response.get("suggestions", {}).get("event_type"):
-            event_context["event_type"] = ai_response["suggestions"]["event_type"]
-            event_context["title"] = f"{ai_response['suggestions']['event_type']} Planning"
+        # **NEW**: Store AI response in memory instead of complex database context
+        memory_store.add_conversation_message(chat_id, "assistant", ai_response.get("message", ""))
         
-        # **FIX**: Store all extracted event data in session context to prevent memory loss
+        # Update extracted data if present
         suggestions = ai_response.get("suggestions", {})
         if suggestions:
-            # Initialize extracted_data if not exists
-            if "extracted_data" not in event_context:
-                event_context["extracted_data"] = {}
-            
-            # Update extracted data with non-null values (preserve existing data)
-            for field in ["event_type", "location", "guest_count", "budget", "meal_type", "dietary_restrictions"]:
-                if field in suggestions and suggestions[field] is not None:
-                    event_context["extracted_data"][field] = suggestions[field]
-                    print(f"🔄 Updated session data: {field} = {suggestions[field]}")
+            memory_store.update_extracted_data(chat_id, suggestions)
         
-        # Track confirmation state and post-generation flow
-        session_context = event_context.get("session_context", {})
-        session_context["awaiting_confirmation"] = ai_response.get("awaiting_confirmation", False)
-        session_context["user_confirmed_generation"] = ai_response.get("user_confirmed_generation", False)
-        session_context["conversation_stage"] = ai_response.get("conversation_stage", "greeting")
+        # Update generation state
+        generation_updates = {}
+        for state_field in ["awaiting_confirmation", "user_confirmed_generation", "conversation_stage", 
+                           "awaiting_pdf_confirmation", "pdf_confirmed"]:
+            if state_field in ai_response:
+                generation_updates[state_field] = ai_response[state_field]
         
-        # Track post-generation states
-        session_context["awaiting_pdf_confirmation"] = ai_response.get("awaiting_pdf_confirmation", False)
-        session_context["pdf_confirmed"] = ai_response.get("pdf_confirmed", False)
+        if generation_updates:
+            memory_store.update_generation_state(chat_id, generation_updates)
         
-        event_context["session_context"] = session_context
-        session.event_context = event_context
-        db.commit()
+        # Store AI suggestions for continuity
+        memory_store.store_ai_suggestions(chat_id, ai_response)
         
-        # Debug: Show current session state
-        extracted_data = event_context.get("extracted_data", {})
-        print(f"🔍 Session state after update: {len(extracted_data)} fields stored")
-        for field, value in extracted_data.items():
-            print(f"   {field}: {value}")
+        # Debug: Show current memory state
+        memory_summary = memory_store.get_session_summary(chat_id)
+        print(f"🧠 Memory updated: {memory_summary['extracted_fields']} fields, {memory_summary['message_count']} messages")
 
 chat_service = ChatService()

@@ -170,7 +170,7 @@ export default function FloatingTopbar({ onStyleSelect, onMoodSelect, onReset })
                 { icon: '💎', text: 'Luxury', color: 'from-violet-100 to-purple-200', size: 'small' },
                 { icon: '🌸', text: 'Romantic', color: 'from-pink-100 to-rose-200', size: 'medium' },
                 { icon: '⚡', text: 'Energetic', color: 'from-yellow-100 to-orange-200', size: 'small' },
-                { icon: '🔄', text: 'Reset', color: 'from-gray-100 to-gray-200', size: 'small', isReset: true },
+                { icon: '🔄', text: 'Reload', color: 'from-gray-100 to-gray-200', size: 'small', isReset: true },
               ].map((mood, index) => {
                 const sizeClasses = {
                   medium: 'px-3 py-1.5 text-xs',

@@ -10,6 +10,7 @@ from dynamodb_database import (
 from ai_services import AIService
 from prompt_service import prompt_service
 from data_collection_service import data_collection_service
+from memory_store import memory_store
 
 class EventService:
     """Handles event planning logic and AI coordination"""
@@ -27,69 +28,57 @@ class EventService:
     ) -> Dict[str, Any]:
         """Process user message and generate AI response with content generation"""
         
-        # Each chat gets its own isolated user session
-        user_session = f"chat_{chat_id}"
-        session.user_session = user_session
+        # **NEW**: Use in-memory store instead of complex DynamoDB queries
+        # Add message to conversation history
+        memory_store.add_conversation_message(chat_id, "user", message_content)
         
-        # Get or create plan session for state management
+        # Build AI context directly from memory (no database queries)
+        ai_context = memory_store.build_ai_context(chat_id, include_history=True, history_limit=25)
+        
+        # Legacy: Still get plan session for database persistence (optional)
         plan_session = get_or_create_plan_session(db, session.id)
         
-        # Build plan context
-        # Query messages count separately for DynamoDB
-        messages = db.query(ChatMessage).filter({'chat_session_id': session.id}).all()
-        
-        # **FIX**: Include session extracted data in plan context
-        session_context = session.event_context.get("session_context", {}) if session.event_context else {}
-        session_context["extracted_data"] = session.event_context.get("extracted_data", {}) if session.event_context else {}
-        
-        plan_context = {
-            "plan_status": plan_session.plan_status,
-            "message_count": len(messages),
-            "generated_content": plan_session.generated_content,
-            "session_context": session_context
-        }
-        
-        # Generate AI response
+        # Generate AI response using in-memory context
         ai_response = await self._generate_ai_response(
-            message_content, conversation_history, plan_context
+            message_content, ai_context["conversation_history"], ai_context
         )
         
-        # **FIX**: Save extracted data to plan session immediately (not just after generation)
+        # **NEW**: Store extracted data directly in memory (instant access, no database delays)
         suggestions = ai_response.get("suggestions", {})
-        if any(suggestions.get(field) for field in ["event_type", "location", "guest_count", "budget", "meal_type", "dietary_restrictions"]):
-            # Update plan session with extracted data
-            current_extracted_data = plan_session.generated_content.get("extracted_data", {}) if plan_session.generated_content else {}
-            for field in ["event_type", "location", "guest_count", "budget", "meal_type", "dietary_restrictions"]:
-                if field in suggestions and suggestions[field] is not None:
-                    current_extracted_data[field] = suggestions[field]
+        if suggestions:
+            # Store ALL AI suggestions in memory for immediate access
+            memory_store.update_extracted_data(chat_id, suggestions)
             
-            # Save to plan session
-            plan_content = plan_session.generated_content or {}
-            plan_content["extracted_data"] = current_extracted_data
-            update_plan_state(db, plan_session, plan_session.plan_status, generated_content=plan_content)
-            print(f"💾 Saved extracted data to plan session: {len(current_extracted_data)} fields")
+            # Update generation state
+            generation_updates = {}
+            for state_field in ["awaiting_confirmation", "user_confirmed_generation", "conversation_stage"]:
+                if state_field in ai_response:
+                    generation_updates[state_field] = ai_response[state_field]
+            
+            if generation_updates:
+                memory_store.update_generation_state(chat_id, generation_updates)
         
-        # Generate content if ready
+        # Generate content if ready using memory context
         generated_content = await self._generate_event_content(
-            ai_response, conversation_history, message_content
+            ai_response, ai_context["conversation_history"], message_content, chat_id
         )
         
-        # Update plan state if content was generated
+        # **NEW**: Store generated content in memory for instant access
         if generated_content["has_content"]:
-            content_data = {
-                "images": generated_content["images"],
-                "music": generated_content["music"],
-                "venues": generated_content["venues"],
-                "food": generated_content["food"],
-                "generation_prompt": ai_response.get("image_generation_prompt", ""),
-                "suggestions": ai_response.get("suggestions", {}),
-                "extracted_data": plan_session.generated_content.get("extracted_data", {}) if plan_session.generated_content else {}
-            }
-            update_plan_state(db, plan_session, "reviewing", generated_content=content_data)
-            print(f"💾 Saved generated content to plan session")
-            print(f"📊 Content summary: {len(generated_content['images'])} images, {len(generated_content['music'])} music, {len(generated_content['venues'])} venues, {len(generated_content['food'])} food")
+            # Store each content type in memory
+            for content_type in ["images", "music", "venues", "food"]:
+                if generated_content[content_type]:
+                    memory_store.store_generated_content(chat_id, content_type, generated_content[content_type])
+            
+            # Update generation state
+            memory_store.update_generation_state(chat_id, {
+                "has_generated": True,
+                "conversation_stage": "reviewing_content"
+            })
         
-        # Prepare AI suggestions with generated content
+        # **NEW**: Build AI suggestions from memory data
+        current_memory = memory_store.get_session_summary(chat_id)
+        
         ai_suggestions = {
             "suggestions": ai_response.get("suggestions", {}),
             "questions": ai_response.get("questions", []),
@@ -97,14 +86,17 @@ class EventService:
             "generation_status": "Generated and saved to gallery" if generated_content["has_content"] else "No generation requested",
             "refresh_gallery": generated_content["has_content"],
             "generated_count": generated_content["total_count"],
-            "plan_status": plan_session.plan_status,
-            "plan_progress": get_plan_progress(db, session.id)["progress"],
+            "plan_status": "reviewing" if current_memory["generation_state"]["has_generated"] else "discovering",
+            "plan_progress": current_memory["generation_state"].get("has_generated", False) * 1.0,
             "image_data": generated_content["images"],
             "music_data": generated_content["music"],
             "venue_data": generated_content["venues"],
             "food_data": generated_content["food"],
             "pdf_requested": ai_response.get("pdf_requested", False)
         }
+        
+        # Store AI suggestions in memory for next request
+        memory_store.store_ai_suggestions(chat_id, ai_suggestions)
         
         print(f"📤 AI suggestions being sent to frontend:")
         print(f"   - refresh_gallery: {ai_suggestions['refresh_gallery']}")
@@ -168,78 +160,48 @@ class EventService:
         # Simple fallback - AI in data_collection_service does the heavy lifting
         return ""
     
-    async def _generate_event_content(self, ai_response: Dict, conversation_history: List[Dict], message_content: str) -> Dict:
+    async def _generate_event_content(self, ai_response: Dict, conversation_history: List[Dict], message_content: str, chat_id: str) -> Dict:
         """Generate event content (images, music, venues) if conditions are met"""
+        # **NEW**: Get all data from memory instead of just AI response
+        memory_data = memory_store.get_extracted_data(chat_id)
+        generation_state = memory_store.get_generation_state(chat_id)
+        
+        # Merge AI suggestions with memory data (memory has priority for existing fields)
         suggestions = ai_response.get("suggestions", {})
+        for field, value in memory_data.items():
+            if value is not None and (field not in suggestions or suggestions[field] is None):
+                suggestions[field] = value
         
-        # Check ALL mandatory fields from data collection service
-        mandatory_fields = {
-            "event_type": "event type",
-            "location": "location (city + country)",
-            "guest_count": "number of guests", 
-            "budget": "budget or style preference",
-            "meal_type": "meal type",
-            "dietary_restrictions": "dietary restrictions"
-        }
+        # **FLEXIBLE**: Let AI determine completeness instead of hardcoded validation
+        completeness_check = memory_store.check_data_completeness(chat_id)
         
-        missing_fields = []
-        for field, description in mandatory_fields.items():
-            value = suggestions.get(field)
-            is_valid = False
-            
-            if field == "guest_count":
-                # Guest count must be a positive integer - convert string numbers
-                if isinstance(value, str) and value.isdigit():
-                    value = int(value)
-                    suggestions[field] = value  # Update the original value
-                is_valid = isinstance(value, (int, float)) and value > 0
-            elif field == "dietary_restrictions":
-                # Dietary restrictions can be empty array, string "none", or actual restrictions
-                is_valid = (
-                    isinstance(value, list) or 
-                    (isinstance(value, str) and len(value.strip()) >= 2) or
-                    value == "none"
-                )
-            else:
-                # Other fields must be non-empty strings and not "unspecified"
-                is_valid = (value and isinstance(value, str) and len(value.strip()) >= 2 and 
-                           value.strip().lower() != "unspecified")
-            
-            if not is_valid:
-                missing_fields.append(description)
-                # Reduced logging: only show invalid fields
-                print(f"❌ Field '{field}' invalid: {value} (type: {type(value)})")
-            # Valid fields don't need logging unless debugging
-        
-        # Special validation for location - must be specific
-        location = suggestions.get("location", "")
-        has_specific_location = location and len(location) > 3 and not any(generic in location.lower() for generic in ["venue", "place", "somewhere", "anywhere"])
-        
-        if not has_specific_location:
-            missing_fields.append("specific location (city + country)")
+        # Simple completion check - AI handles the complex validation
+        has_essential_data = (
+            suggestions.get("event_type") and 
+            suggestions.get("location") and 
+            completeness_check["field_count"] >= 4  # At least 4 fields extracted
+        )
         
         # Check if we're in post-generation phase (prevent double generation)
-        conversation_stage = ai_response.get("conversation_stage", "")
-        if conversation_stage in ["reviewing_content", "awaiting_pdf_confirmation", "pdf_generation"]:
-            print(f"🚫 Skipping generation - in post-generation phase: {conversation_stage}")
+        conversation_stage = generation_state.get("conversation_stage", "")
+        if generation_state.get("has_generated", False) or conversation_stage in ["reviewing_content", "awaiting_pdf_confirmation", "pdf_generation"]:
+            print(f"🚫 Skipping generation - already generated or in post-generation phase: {conversation_stage}")
             return {"images": [], "music": [], "venues": [], "food": [], "has_content": False, "total_count": 0}
         
         ai_ready = ai_response.get("ready_to_generate", False)
-        all_fields_complete = len(missing_fields) == 0
-        user_confirmed = ai_response.get("user_confirmed_generation", False)
+        user_confirmed = generation_state.get("user_confirmed", False) or ai_response.get("user_confirmed_generation", False)
         
-        print(f"🔍 Generation check: AI ready={ai_ready}, all_fields_complete={all_fields_complete}, user_confirmed={user_confirmed}")
-        if missing_fields:
-            print(f"⚠️ Missing mandatory fields: {missing_fields}")
+        print(f"🔍 Generation check: AI ready={ai_ready}, has_essential_data={has_essential_data}, user_confirmed={user_confirmed}")
+        print(f"📊 Memory completeness: {completeness_check['field_count']} fields, score: {completeness_check['completeness_score']:.1f}")
         
-        if not (ai_ready and ai_response.get("image_generation_prompt") and all_fields_complete and user_confirmed):
-            if ai_ready and not all_fields_complete:
-                print(f"⚠️ AI wanted to generate but missing: {missing_fields}")
-                ai_response["message"] = f"I need a few more details to create the perfect event for you! 🎯 Please tell me: {', '.join(missing_fields[:3])}"
+        if not (ai_ready and ai_response.get("image_generation_prompt") and has_essential_data and user_confirmed):
+            if ai_ready and not has_essential_data:
+                print(f"⚠️ AI wanted to generate but missing essential data")
+                ai_response["message"] = f"I need a few more details to create the perfect event for you! 🎯 Can you tell me more about your event?"
                 ai_response["ready_to_generate"] = False
-            elif ai_ready and all_fields_complete and not user_confirmed:
-                print(f"⚠️ All fields complete but user hasn't confirmed generation")
-                ai_response["message"] = "I have all your event details! Would you like me to generate your personalized recommendations now? Just say 'yes' or 'go ahead' to start! 🎉"
+            elif ai_ready and has_essential_data and not user_confirmed:
+                print(f"⚠️ Essential data complete but user hasn't confirmed generation")
+                ai_response["message"] = "I have your event details! Would you like me to generate your personalized recommendations now? Just say 'yes' or 'go ahead' to start! 🎉"
                 ai_response["ready_to_generate"] = False
                 ai_response["awaiting_confirmation"] = True
             return {"images": [], "music": [], "venues": [], "food": [], "has_content": False, "total_count": 0}
@@ -253,10 +215,9 @@ class EventService:
             generated_venues = []
             
             if self.ai_service:
-                # **FIX**: Pass session extracted data to AI analysis to prevent memory loss
-                session_extracted_data = session.event_context.get("extracted_data", {}) if session.event_context else {}
+                # **NEW**: Use memory data instead of session context
                 conversation_context = await data_collection_service.analyze_conversation_with_ai(
-                    conversation_history, message_content, session_extracted_data
+                    conversation_history, message_content, memory_data
                 )
                 
                 # Use AI-extracted location - it's smarter than regex
@@ -293,8 +254,8 @@ class EventService:
                     print(f"⚠️ Image generation failed: {str(e)}")
                     generated_images = []
                 
-                # Get music and venue recommendations (always run these)
-                if has_specific_location:
+                # Get music and venue recommendations (always run these if we have location)
+                if final_location and len(final_location) > 3:
                     recommendations = await self.ai_service.get_comprehensive_recommendations(
                         {"event_type": suggestions.get("event_type", "party"), "location": final_location},
                         suggestions

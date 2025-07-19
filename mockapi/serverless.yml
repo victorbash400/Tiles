@@ -1,0 +1,67 @@
+service: tiles-backend
+
+frameworkVersion: '4'
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: ${env:AWS_REGION, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
+  timeout: 180
+  memorySize: 1024
+  environment:
+    STAGE: ${self:provider.stage}
+    OPENAI_API_KEY: ${env:OPENAI_API_KEY}
+    AZURE_OPENAI_API_KEY: ${env:AZURE_OPENAI_API_KEY}
+    AZURE_OPENAI_ENDPOINT: ${env:AZURE_OPENAI_ENDPOINT}
+    QLOO_API_KEY: ${env:QLOO_API_KEY}
+    QLOO_API_URL: ${env:QLOO_API_URL}
+    YOUTUBE_API_KEY: ${env:YOUTUBE_API_KEY}
+    UNSPLASH_ACCESS_KEY: ${env:UNSPLASH_ACCESS_KEY_1}
+    CLEAR_DATABASE_ON_START: ${env:CLEAR_DATABASE_ON_START, 'true'}
+  # AWS credentials will be read from environment variables
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - dynamodb:BatchWriteItem
+        - dynamodb:CreateTable
+        - dynamodb:DescribeTable
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/*"
+
+functions:
+  api:
+    handler: lambda_handler.handler
+    events:
+      - httpApi: '*'
+    # environment:
+    #   PYTHONPATH: /var/task
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: false
+    slim: true
+    strip: false
+    usePoetry: false
+    useStaticCache: false
+    useDownloadCache: false
+    pipCmdExtraArgs:
+      - --no-cache-dir
+
+package:
+  patterns:
+    - '!node_modules/**'
+    - '!.git/**'
+    - '!.pytest_cache/**'
+    - '!tests/**'
+    - '!*.db'
+    - '!venv/**'
+    - '!__pycache__/**'

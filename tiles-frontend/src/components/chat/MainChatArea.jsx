@@ -11,22 +11,54 @@ export default function MainChatArea() {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [currentChatId, setCurrentChatId] = useState(
+    // Try to restore from sessionStorage
+    typeof window !== 'undefined' ? sessionStorage.getItem('currentChatId') : null
+  );
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    fetchImages();
-  }, []);
+    // If no current chat session, create a fresh one automatically
+    if (!currentChatId) {
+      createFreshSession();
+    } else {
+      // Load gallery for existing session
+      fetchImages(currentChatId);
+    }
+  }, [currentChatId]);
 
-  const fetchImages = async () => {
+  const createFreshSession = async () => {
+    try {
+      console.log('🆕 Creating fresh chat session for new user');
+      const { createNewChat } = await import('../../services/MainChatArea-api');
+      const newChat = await createNewChat();
+      handleChatSessionChange(newChat.chatId);
+      console.log('✅ Created fresh session:', newChat.chatId);
+    } catch (error) {
+      console.error('❌ Failed to create fresh session:', error);
+      // Fallback to welcome gallery
+      fetchImages();
+    }
+  };
+
+  const fetchImages = async (chatSessionId = null) => {
+    // Use current chat session if none provided
+    const sessionId = chatSessionId || currentChatId;
+    console.log('🖼️ Gallery refresh for session:', sessionId);
     setLoading(true);
     try {
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-      const response = await fetch(`${API_BASE_URL}/gallery/images`);
+      const url = sessionId 
+        ? `${API_BASE_URL}/gallery/images?chat_session_id=${sessionId}`
+        : `${API_BASE_URL}/gallery/images`;
+      console.log('📡 Gallery API URL:', url);
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch images');
       const data = await response.json();
       setImages(data.images || []);
+      console.log('✅ Gallery updated:', data.images?.length || 0, 'images');
     } catch (error) {
-      console.error("Failed to fetch images", error);
+      console.error("❌ Failed to fetch images", error);
       setImages([]);
     } finally {
       setLoading(false);
@@ -35,6 +67,21 @@ export default function MainChatArea() {
 
   const handlePlannerToggle = () => {
     setIsAIModalOpen(!isAIModalOpen);
+  };
+
+  const handleChatSessionChange = (chatId) => {
+    console.log('🔍 MAINCHATAREA - handleChatSessionChange called with:', chatId, 'Type:', typeof chatId);
+    console.log('🔍 Previous currentChatId was:', currentChatId, 'Type:', typeof currentChatId);
+    
+    setCurrentChatId(chatId);
+    // Persist to sessionStorage
+    if (chatId) {
+      sessionStorage.setItem('currentChatId', chatId);
+      console.log('🔍 Saved to sessionStorage:', chatId);
+    } else {
+      sessionStorage.removeItem('currentChatId');
+      console.log('🔍 Removed from sessionStorage');
+    }
   };
 
   const handleStyleSelect = async (style) => {
@@ -107,7 +154,7 @@ export default function MainChatArea() {
         <FloatingTopbar 
           onStyleSelect={handleStyleSelect} 
           onMoodSelect={handleMoodSelect} 
-          onReset={fetchImages} 
+          onReset={() => fetchImages()} 
         />
 
         {/* Gallery Content */}
@@ -252,7 +299,12 @@ export default function MainChatArea() {
       <PlannerModal 
         isOpen={isAIModalOpen} 
         onClose={() => setIsAIModalOpen(false)}
-        onGalleryRefresh={fetchImages}
+        onGalleryRefresh={(chatId) => {
+          console.log('🔍 MAINCHATAREA - onGalleryRefresh callback called with:', chatId, 'Type:', typeof chatId);
+          fetchImages(chatId);
+        }}
+        onChatSessionChange={handleChatSessionChange}
+        initialChatId={currentChatId}
       />
 
       <style jsx>{`

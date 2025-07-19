@@ -91,8 +91,12 @@ export const getAIMemory = async (userSession = null) => {
 };
 
 // Gallery API functions
-export const fetchGalleryImages = async () => {
-  const response = await fetch(`${API_BASE_URL}/gallery/images`);
+export const fetchGalleryImages = async (chatSessionId = null) => {
+  const url = chatSessionId 
+    ? `${API_BASE_URL}/gallery/images?chat_session_id=${chatSessionId}`
+    : `${API_BASE_URL}/gallery/images`;
+  
+  const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error('Failed to fetch gallery images');

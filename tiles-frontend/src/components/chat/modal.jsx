@@ -37,13 +37,12 @@ import {
   getChatById,
   saveMessage,
   createNewChat,
-  getAllChats,
   getAIMemory,
 } from '../../services/MainChatArea-api';
 import ChatInput from './ChatInput';
 import ChatBubble from './ChatBubble';
 
-export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
+export default function PlannerModal({ isOpen, onClose, onGalleryRefresh, onChatSessionChange, initialChatId }) {
   // Inject custom scrollbar styles
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -56,11 +55,24 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
   }, []);
   const [activeView, setActiveView] = useState('chat');
   const [chats, setChats] = useState([]);
-  const [currentChatId, setCurrentChatId] = useState(null);
+  const [currentChatId, setCurrentChatId] = useState(initialChatId);
+
+  // **NEW**: Sync with parent when initialChatId changes (keeps modal in sync)
+  useEffect(() => {
+    console.log('🔍 MODAL SYNC DEBUG:');
+    console.log('   initialChatId prop:', initialChatId, 'Type:', typeof initialChatId);
+    console.log('   currentChatId state:', currentChatId, 'Type:', typeof currentChatId);
+    console.log('   Are they different?', initialChatId !== currentChatId);
+    
+    if (initialChatId !== currentChatId) {
+      console.log('🔄 Modal syncing with parent chat ID:', initialChatId);
+      setCurrentChatId(initialChatId);
+    }
+  }, [initialChatId, currentChatId]);
   const [messages, setMessages] = useState([]);
   const [aiMemory, setAiMemory] = useState(null);
   const [loading, setLoading] = useState({ chats: false, messages: false, memory: false });
-  const [isNewChat, setIsNewChat] = useState(true);
+  const [isNewChat, setIsNewChat] = useState(!initialChatId);
   const messagesEndRef = useRef(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -71,21 +83,22 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
   const loadAllChats = useCallback(async () => {
     setLoading(prev => ({ ...prev, chats: true }));
     try {
-      const chatList = await getAllChats();
-      setChats(chatList);
-      if (chatList.length > 0) {
-        setCurrentChatId(chatList[0].chatId);
-        setIsNewChat(false);
+      // Only load current chat for sidebar, not all chats from all sessions
+      if (currentChatId) {
+        const currentChat = await getChatById(currentChatId);
+        setChats([currentChat]);
       } else {
-        setCurrentChatId(null);
+        // No current chat - start fresh
+        setChats([]);
         setIsNewChat(true);
       }
     } catch (err) {
-      console.error('Error loading chats:', err);
+      console.error('Error loading current chat:', err);
+      setChats([]);
     } finally {
       setLoading(prev => ({ ...prev, chats: false }));
     }
-  }, []);
+  }, [currentChatId]);
 
   const loadAIMemory = useCallback(async () => {
     setLoading(prev => ({ ...prev, memory: true }));
@@ -99,25 +112,34 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
     }
   }, []);
 
+  // **NEW**: Only handle keyboard events and view setting on open/close
   useEffect(() => {
     const escHandler = (e) => e.key === 'Escape' && onClose();
     if (isOpen) {
       document.addEventListener('keydown', escHandler);
-      loadAllChats();
-      loadAIMemory();
       setActiveView('chat');
     }
     return () => document.removeEventListener('keydown', escHandler);
-  }, [isOpen, onClose, loadAllChats, loadAIMemory]);
+  }, [isOpen, onClose]);
 
+  // **NEW**: Separate initialization - only run once or when chat changes
   useEffect(() => {
-    if (currentChatId && isOpen) {
+    if (currentChatId) {
+      loadAllChats();
+      loadAIMemory();
+    }
+  }, [currentChatId, loadAllChats, loadAIMemory]);
+
+  // **NEW**: Load messages only when chat changes, not when modal opens/closes
+  useEffect(() => {
+    if (currentChatId) {
       const loadChat = async () => {
         setLoading(prev => ({ ...prev, messages: true }));
         try {
           const chat = await getChatById(currentChatId);
           setMessages(chat.messages || []);
           setIsNewChat(chat.messages?.length === 0);
+          console.log('💬 Loaded chat messages for session:', currentChatId, '- Message count:', chat.messages?.length || 0);
         } catch (err) {
           console.error('Chat error:', err);
           setMessages([]);
@@ -128,10 +150,11 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
       };
       loadChat();
     } else {
+      // No chat ID - reset to new chat state
       setMessages([]);
       setIsNewChat(true);
     }
-  }, [currentChatId, isOpen]);
+  }, [currentChatId]); // **REMOVED isOpen dependency**
 
   const handleCreateNewChat = async () => {
     setLoading(prev => ({ ...prev, messages: true }));
@@ -142,6 +165,11 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
       setMessages([]);
       setIsNewChat(true);
       setActiveView('chat');
+      // Notify parent about new chat session
+      if (onChatSessionChange) {
+        console.log('🔍 NEW CHAT CREATION - Calling onChatSessionChange with:', newChat.chatId, 'Type:', typeof newChat.chatId);
+        onChatSessionChange(newChat.chatId);
+      }
       return newChat.chatId;
     } catch (err) {
       console.error('New chat error:', err);
@@ -152,11 +180,21 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
   };
 
   const handleSendMessage = async (text) => {
+    console.log('🔍 MODAL DEBUG - handleSendMessage START');
+    console.log('🔍 currentChatId state:', currentChatId, 'Type:', typeof currentChatId);
+    console.log('🔍 initialChatId prop:', initialChatId, 'Type:', typeof initialChatId);
+    
     let chatId = currentChatId;
+    console.log('🔍 chatId variable initial:', chatId, 'Type:', typeof chatId);
+    
     if (!chatId) {
+      console.log('🔍 No chatId, creating new chat...');
       const newChatId = await handleCreateNewChat();
       if (!newChatId) return;
       chatId = newChatId;
+      console.log('🔍 chatId after creation:', chatId, 'Type:', typeof chatId);
+      // Update currentChatId to ensure it's in sync
+      setCurrentChatId(chatId);
     }
 
     const userMessage = {
@@ -183,27 +221,97 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh }) {
     setMessages(prev => [...prev, loadingMessage]);
 
     try {
+      console.log('🔍 BEFORE API CALL - chatId about to send:', chatId, 'Type:', typeof chatId);
+      console.log('💬 Sending message to chat ID:', chatId);
       const aiResponse = await saveMessage(chatId, text);
-      console.log('AI Response received:', aiResponse);
+      console.log('🔄 AI Response received:', aiResponse);
+      console.log('🔍 AI suggestions structure:', aiResponse?.ai_suggestions);
+      console.log('🔍 Refresh gallery flag:', aiResponse?.ai_suggestions?.refresh_gallery);
+      console.log('🔍 DEBUGGING: aiResponse exists:', !!aiResponse);
+      console.log('🔍 DEBUGGING: ai_suggestions exists:', !!aiResponse?.ai_suggestions);
       
-      // Remove loading message
-      setMessages(prev => prev.filter(msg => msg.id !== loadingMessage.id));
+      // Always remove loading message first
+      setMessages(prev => {
+        const filtered = prev.filter(msg => msg.id !== loadingMessage.id);
+        console.log('🗑️ Removed loading message, remaining messages:', filtered.length);
+        return filtered;
+      });
       
       if (aiResponse) {
-        setMessages(prev => [...prev, aiResponse]);
+        // Add AI response
+        setMessages(prev => {
+          const updated = [...prev, aiResponse];
+          console.log('➕ Added AI response, total messages:', updated.length);
+          return updated;
+        });
+        
         loadAIMemory();
         
-        // Check if we need to refresh the gallery
-        if (aiResponse.ai_suggestions?.refresh_gallery && onGalleryRefresh) {
-          console.log('🖼️ Refreshing gallery with new AI-generated images...');
-          onGalleryRefresh();
+        // **AUTOMATIC REFRESH**: Check if we need to refresh the gallery
+        const shouldRefresh = aiResponse.ai_suggestions?.refresh_gallery;
+        const hasGeneratedContent = aiResponse.image_data?.length > 0 || aiResponse.music_data?.length > 0 || 
+                                   aiResponse.venue_data?.length > 0 || aiResponse.food_data?.length > 0;
+        
+        if (shouldRefresh || hasGeneratedContent) {
+          console.log('🖼️ Gallery refresh needed!');
+          console.log('   Explicit refresh flag:', shouldRefresh);
+          console.log('   Has generated content:', hasGeneratedContent);
+          console.log('   Images:', aiResponse.image_data?.length || 0);
+          console.log('   Music:', aiResponse.music_data?.length || 0);
+          console.log('   Venues:', aiResponse.venue_data?.length || 0);
+          console.log('   Food:', aiResponse.food_data?.length || 0);
+          
+          if (onGalleryRefresh) {
+            // Attempt automatic refresh
+            console.log('🔄 ATTEMPTING automatic gallery refresh...');
+            setTimeout(() => {
+              onGalleryRefresh(chatId);
+              
+              // **ULTIMATE FALLBACK**: Set a secondary timer to check if refresh worked
+              // If not, we'll trigger the manual refresh button as a last resort
+              setTimeout(() => {
+                console.log('🔍 FALLBACK CHECK: Verifying gallery refresh success...');
+                // This fallback ensures gallery updates even if automatic refresh has issues
+                if (onGalleryRefresh) {
+                  console.log('🔄 SAFETY FALLBACK: Re-triggering gallery refresh...');
+                  onGalleryRefresh(chatId);
+                }
+              }, 2000); // Give 2 seconds for automatic refresh to work
+            }, 100);
+          } else {
+            console.error('❌ onGalleryRefresh callback is missing!');
+          }
+        } else {
+          console.log('📋 No gallery refresh needed - no content generated');
         }
       } else {
-        console.log('AI Response is null or undefined');
+        console.error('❌ AI Response is null or undefined');
       }
     } catch (err) {
-      console.error('Message error:', err);
-      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id || msg.id !== loadingMessage.id));
+      console.error('💥 Message error:', err);
+      console.error('💥 Error details:', err.message);
+      
+      // **CORS ERROR FALLBACK**: Still try to refresh gallery since content might have been generated
+      if (err.message?.includes('CORS') || err.message?.includes('Failed to fetch')) {
+        console.log('🔄 CORS ERROR: Attempting fallback gallery refresh...');
+        if (onGalleryRefresh) {
+          setTimeout(() => {
+            console.log('🔄 CORS FALLBACK: Executing gallery refresh...');
+            onGalleryRefresh(chatId);
+            
+            // Double fallback for CORS errors - try again after delay
+            setTimeout(() => {
+              console.log('🔄 CORS DOUBLE FALLBACK: Re-attempting gallery refresh...');
+              onGalleryRefresh(chatId);
+            }, 2000);
+          }, 1000);
+        }
+      }
+      
+      // Remove both user and loading messages on error
+      setMessages(prev => prev.filter(msg => 
+        msg.id !== userMessage.id && msg.id !== loadingMessage.id
+      ));
     }
   };
 

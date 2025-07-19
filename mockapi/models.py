@@ -14,6 +14,7 @@ class MessageResponse(BaseModel):
     image_data: Optional[List] = None
     music_data: Optional[List] = None
     venue_data: Optional[List] = None
+    food_data: Optional[List] = None
 
 class ChatSessionResponse(BaseModel):
     chatId: str

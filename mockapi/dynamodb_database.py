@@ -167,7 +167,7 @@ def clear_all_tables():
                     for item in items:
                         batch.delete_item(Key={'id': item['id']})
                 
-                print(f"✅ Cleared {len(items)} items from {table_name} table")
+                # Cleared items from table
                 
             except Exception as e:
                 print(f"❌ Error clearing {table_name} table: {str(e)}")
@@ -282,7 +282,7 @@ class DynamoDBQuery:
                 response = self.session.user_memory_table.scan()
                 return [UserMemory.from_dict(item) for item in response['Items']]
         except Exception as e:
-            print(f"Error querying user memory: {e}")
+            # Error querying user memory
             return []
 
     def _query_chat_sessions(self):
@@ -298,7 +298,7 @@ class DynamoDBQuery:
                 response = self.session.chat_sessions_table.scan()
                 return [ChatSession.from_dict(item) for item in response['Items']]
         except Exception as e:
-            print(f"Error querying chat sessions: {e}")
+            # Error querying chat sessions
             return []
 
     def _query_chat_messages(self):
@@ -314,7 +314,7 @@ class DynamoDBQuery:
                 response = self.session.chat_messages_table.scan()
                 return [ChatMessage.from_dict(item) for item in response['Items']]
         except Exception as e:
-            print(f"Error querying chat messages: {e}")
+            # Error querying chat messages
             return []
 
     def _query_plan_sessions(self):
@@ -330,7 +330,7 @@ class DynamoDBQuery:
                 response = self.session.plan_sessions_table.scan()
                 return [PlanSession.from_dict(item) for item in response['Items']]
         except Exception as e:
-            print(f"Error querying plan sessions: {e}")
+            # Error querying plan sessions
             return []
 
 def get_db():

@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./tiles_events.db")
+# Database configuration - use /tmp for Lambda compatibility
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/tiles_events.db")
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
