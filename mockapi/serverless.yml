@@ -9,6 +9,7 @@ provider:
   stage: ${opt:stage, 'dev'}
   timeout: 180
   memorySize: 1024
+  deploymentBucket: serverless-framework-deployments-us-east-1-ff890606-06cd
   environment:
     STAGE: ${self:provider.stage}
     OPENAI_API_KEY: ${env:OPENAI_API_KEY}

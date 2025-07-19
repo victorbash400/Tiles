@@ -247,19 +247,12 @@ export default function PlannerModal({ isOpen, onClose, onGalleryRefresh, onChat
         
         loadAIMemory();
         
-        // **AUTOMATIC REFRESH**: Check if we need to refresh the gallery
+        // **AUTOMATIC REFRESH**: Only refresh if backend explicitly says to
         const shouldRefresh = aiResponse.ai_suggestions?.refresh_gallery;
-        const hasGeneratedContent = aiResponse.image_data?.length > 0 || aiResponse.music_data?.length > 0 || 
-                                   aiResponse.venue_data?.length > 0 || aiResponse.food_data?.length > 0;
         
-        if (shouldRefresh || hasGeneratedContent) {
-          console.log('🖼️ Gallery refresh needed!');
-          console.log('   Explicit refresh flag:', shouldRefresh);
-          console.log('   Has generated content:', hasGeneratedContent);
-          console.log('   Images:', aiResponse.image_data?.length || 0);
-          console.log('   Music:', aiResponse.music_data?.length || 0);
-          console.log('   Venues:', aiResponse.venue_data?.length || 0);
-          console.log('   Food:', aiResponse.food_data?.length || 0);
+        if (shouldRefresh) {
+          console.log('🖼️ Gallery refresh triggered by backend!');
+          console.log('   Refresh flag:', shouldRefresh);
           
           if (onGalleryRefresh) {
             // Attempt automatic refresh

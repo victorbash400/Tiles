@@ -79,9 +79,10 @@ class EventService:
         # **NEW**: Build AI suggestions from memory data
         current_memory = memory_store.get_session_summary(chat_id)
         
-        # **REVERT**: Only refresh on NEW generation, not existing content
-        # This prevents constant reloading that breaks PDF generation
-        refresh_gallery_value = generated_content["has_content"]
+        # **DISABLE AUTO-REFRESH AFTER FIRST GENERATION**
+        # Once content is generated, no more auto-refresh - user can manually refresh
+        has_already_generated = current_memory["generation_state"].get("has_generated", False)
+        refresh_gallery_value = generated_content["has_content"] and not has_already_generated
         
         ai_suggestions = {
             "suggestions": ai_response.get("suggestions", {}),

@@ -388,7 +388,8 @@ Make this plan:
         # Executive Summary
         if ai_plan.get('executive_summary'):
             content.append(Paragraph("Executive Summary", self.styles['SectionHeader']))
-            content.append(Paragraph(ai_plan['executive_summary'], self.styles['Normal']))
+            summary_text = str(ai_plan['executive_summary']) if ai_plan['executive_summary'] else "No executive summary available"
+            content.append(Paragraph(summary_text, self.styles['Normal']))
             content.append(Spacer(1, 15))
         
         # Timeline
@@ -397,9 +398,11 @@ Make this plan:
             timeline_items = ai_plan['timeline']
             if isinstance(timeline_items, list):
                 for item in timeline_items:
-                    content.append(Paragraph(f"• {item}", self.styles['RecommendationItem']))
+                    item_text = str(item) if item else "Timeline item"
+                    content.append(Paragraph(f"• {item_text}", self.styles['RecommendationItem']))
             else:
-                content.append(Paragraph(timeline_items, self.styles['Normal']))
+                timeline_text = str(timeline_items) if timeline_items else "No timeline available"
+                content.append(Paragraph(timeline_text, self.styles['Normal']))
             content.append(Spacer(1, 15))
         
         # Budget Breakdown
@@ -410,28 +413,34 @@ Make this plan:
             if isinstance(budget_data, dict):
                 # Format as structured budget items
                 for category, cost in budget_data.items():
-                    content.append(Paragraph(f"• {category.title()}: {cost}", self.styles['RecommendationItem']))
+                    category_text = str(category).title() if category else "Budget item"
+                    cost_text = str(cost) if cost else "TBD"
+                    content.append(Paragraph(f"• {category_text}: {cost_text}", self.styles['RecommendationItem']))
             else:
                 # Fallback to text
-                content.append(Paragraph(budget_data, self.styles['Normal']))
+                budget_text = str(budget_data) if budget_data else "No budget breakdown available"
+                content.append(Paragraph(budget_text, self.styles['Normal']))
             content.append(Spacer(1, 15))
         
         # Vendor Coordination
         if ai_plan.get('vendor_coordination'):
             content.append(Paragraph("🤝 Vendor Coordination", self.styles['SectionHeader']))
-            content.append(Paragraph(ai_plan['vendor_coordination'], self.styles['Normal']))
+            vendor_text = str(ai_plan['vendor_coordination']) if ai_plan['vendor_coordination'] else "No vendor coordination details available"
+            content.append(Paragraph(vendor_text, self.styles['Normal']))
             content.append(Spacer(1, 15))
         
         # Guest Experience
         if ai_plan.get('guest_experience'):
             content.append(Paragraph("✨ Guest Experience", self.styles['SectionHeader']))
-            content.append(Paragraph(ai_plan['guest_experience'], self.styles['Normal']))
+            guest_text = str(ai_plan['guest_experience']) if ai_plan['guest_experience'] else "No guest experience details available"
+            content.append(Paragraph(guest_text, self.styles['Normal']))
             content.append(Spacer(1, 15))
         
         # Logistics
         if ai_plan.get('logistics'):
             content.append(Paragraph("⚙️ Logistics & Operations", self.styles['SectionHeader']))
-            content.append(Paragraph(ai_plan['logistics'], self.styles['Normal']))
+            logistics_text = str(ai_plan['logistics']) if ai_plan['logistics'] else "No logistics details available"
+            content.append(Paragraph(logistics_text, self.styles['Normal']))
             content.append(Spacer(1, 15))
         
         # Final Checklist
@@ -440,9 +449,11 @@ Make this plan:
             checklist_items = ai_plan['final_checklist']
             if isinstance(checklist_items, list):
                 for item in checklist_items:
-                    content.append(Paragraph(f"☐ {item}", self.styles['RecommendationItem']))
+                    item_text = str(item) if item else "Checklist item"
+                    content.append(Paragraph(f"☐ {item_text}", self.styles['RecommendationItem']))
             else:
-                content.append(Paragraph(checklist_items, self.styles['Normal']))
+                checklist_text = str(checklist_items) if checklist_items else "No checklist available"
+                content.append(Paragraph(checklist_text, self.styles['Normal']))
             content.append(Spacer(1, 15))
         
         return content
