@@ -83,6 +83,9 @@ Thumbs.db
 *.pem
 secrets/
 config/secrets.yml
+*accessKeys*.csv
+CLAUDE.md
+*:Zone.Identifier
 
 # Large files
 *.zip
